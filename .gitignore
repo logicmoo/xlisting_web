@@ -1,4 +1,13 @@
-######################
-## EPiServer Files
-######################
-*License.config
+*.tar
+*.tar.*
+*.jar
+*.exe
+*.msi
+*.zip
+*.tgz
+*.log
+*~
+~*
+*.qlf
+INDEX.pl
+*.o
