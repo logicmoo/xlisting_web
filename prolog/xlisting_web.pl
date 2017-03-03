@@ -192,6 +192,7 @@
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/http_log)).
 :- use_module(library(http/http_server_files)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(http/html_head)).
@@ -261,15 +262,16 @@ ensure_webserver(Port) :- on_x_debug(catch((http_server(http_dispatch,[ port(Por
 ensure_webserver:- ensure_webserver(3020).
 
 :- multifile(http_session:session_data/2).
-:- multifile(system:'$loading_file'/3).
-:- multifile(http_log:log_stream/2).
-:- multifile(http_session:urandom_handle/1).
-
 :- volatile(http_session:session_data/2).
+
+:- multifile(system:'$loading_file'/3).
 :- volatile(system:'$loading_file'/3).
-:- volatile(http_log:log_stream/2).
+
+:- multifile(http_session:urandom_handle/1).
 :- volatile(http_session:urandom_handle/1).
 
+:- multifile(http_log:log_stream/2).
+:- volatile(http_log:log_stream/2).
 
 
 
@@ -1332,7 +1334,7 @@ make_page_pretext_obj(Obj):- writeq(make_page_pretext_obj(Obj)),!.
 
 
 
-:- prolog_xref:assert_default_options(register_called(all)).
+% :- prolog_xref:assert_default_options(register_called(all)).
 
 
 
@@ -1680,7 +1682,7 @@ baseKB:shared_hide_data((_:-
 
 baseKB:shared_hide_data(saved_request/_):- !.
 baseKB:shared_hide_data(session_data/_):- !.
-baseKB:shared_hide_data(mpred_mark/3):- !,listing_filter(hideMeta).
+baseKB:shared_hide_data(mpred_prop/3):- !,listing_filter(hideMeta).
 baseKB:shared_hide_data(last_item_offered/1):- !,listing_filter(hideMeta).
 baseKB:shared_hide_data(P0):- strip_module(P0,_,P), compound(P),functor(P,F,A),F\== (/) , !,baseKB:shared_hide_data(F/A).
 
