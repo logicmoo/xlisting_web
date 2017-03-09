@@ -159,9 +159,12 @@
             */
           ]).
 
+
 % :- include(logicmoo(mpred/'mpred_header.pi')).
 %:- endif.
 :- set_module(class(library)).
+:- use_module(library(attvar_serializer)).
+
 
  :- meta_predicate 
         edit1term(0),
@@ -3058,4 +3061,6 @@ xlisting_web_file.
 % :- ensure_webserver(6767).
 
 t123:- locally(t_l:print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
+
+:- fixup_exports.
 
