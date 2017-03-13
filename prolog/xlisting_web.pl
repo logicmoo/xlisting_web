@@ -72,7 +72,7 @@
             nl_same_pos/0,
             numberlist_at/2,
             object_sub_page/4,
-            param_default_value/2,
+            % ==> param_default_value/2,
             param_matches/2,
             parameter_names/2,
             partOfSpeech/2,
@@ -165,11 +165,12 @@
 :- set_module(class(library)).
 :- use_module(library(attvar_serializer)).
 
+:- kb_shared(param_default_value/2).
 
  :- meta_predicate 
-        edit1term(0),
+        edit1term(*),
         handler_logicmoo_cyclone(+),
-        must_run(0),
+        must_run(*),
         if_html(?, 0),
         return_to_pos(0),
         show_edit_term(0, ?, ?),
@@ -308,9 +309,6 @@ ensure_webserver:- ensure_webserver(3020).
 register_logicmoo_browser:- 
   http_handler('/logicmoo/', handler_logicmoo_cyclone, [prefix]), % chunked
   http_handler('/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]).
-
-
-:- during_boot(register_logicmoo_browser).
 
 
 
@@ -561,6 +559,7 @@ save_request_in_session(Request):-
 :- dynamic(lmcache:current_ioet/4).
 :- volatile(lmcache:current_ioet/4).
 
+:- create_prolog_flag(retry_undefined,default,[type(term),keep(true)]).
 
 %% handler_logicmoo_cyclone( +Request) is det.
 %
@@ -736,16 +735,14 @@ cvt_param_to_term(In,Obj):-cvt_param_to_term(In,Obj,_Vs),!.
 cvt_param_to_term(Obj,Obj).
 
 
-:- discontiguous param_default_value/2. 
-
-
 
 
 %% param_default_value( ?ARG1, ?ARG2) is det.
 %
 % Param Default Value.
 %
-param_default_value(human_language,'EnglishLanguage').
+
+==>(param_default_value(human_language,'EnglishLanguage')).
 
 
 
@@ -778,15 +775,15 @@ human_language('SpanishLanguage').
 human_language('ThaiLanguage').
 human_language('de').
 
-param_default_value(call,edit1term).
+==> param_default_value(call,edit1term).
 
-param_default_value(N,V):-
+==> param_default_value(N,V):-
   member(N=V,['prover'='proverPTTP','apply'='find','term'='',action_below=query,'action_above'='query','context'='BaseKB','flang'='CLIF','find'='tHumanHead','xref'='Overlap','POS'='N','humanLang'='EnglishLanguage','olang'='CLIF','sExprs'='1','webDebug'='1','displayStart'='0','displayMax'='100000']).
 
-param_default_value(request_uri,'/logicmoo/').
-param_default_value(logic_lang_name,'CLIF').
-param_default_value(olang,'CLIF').
-param_default_value(find,'tHumanHead').
+==> param_default_value(request_uri,'/logicmoo/').
+==> param_default_value(logic_lang_name,'CLIF').
+==> param_default_value(olang,'CLIF').
+==> param_default_value(find,'tHumanHead').
 
 
 
@@ -802,7 +799,7 @@ logic_lang_name('SUO-KIF',"SUO-KIF").
 logic_lang_name('TPTP',"TPTP (fof/cnf)").
 logic_lang_name('OWL',"OWL").
 
-param_default_value(prover_name,'proverPTTP').
+==> param_default_value(prover_name,'proverPTTP').
 
 
 
@@ -815,7 +812,7 @@ prover_name("proverPFC","PFC").
 prover_name("proverPTTP","PTTP (LogicMOO)").
 prover_name("proverDOLCE","DOLCE (LogicMOO)").
 
-param_default_value(partOfSpeech,'N').
+==> param_default_value(partOfSpeech,'N').
 
 
 
@@ -849,7 +846,7 @@ param_matches(A,B):-A=B,!.
 show_select2(Name,Pred,Options):-
   
     Call=..[Pred,ID,Value],
-    must_run(param_default_value(Name,D);param_default_value(Pred,D)),!,
+    must_run(param_default_value(Name,D); param_default_value(Pred,D)),!,
     get_param_sess(Name,UValue,D),
     format('<select name="~w">',[Name]),
     forall(Call,
@@ -868,7 +865,7 @@ show_select2(Name,Pred,Options):-
 %
 show_select1(Name,Pred):-
  Call=..[Pred,Value],
- (param_default_value(Name,D);param_default_value(Pred,D)),!,
+ ( param_default_value(Name,D); param_default_value(Pred,D)),!,
  format('<select name="~w">',[Name]),
  forall(Call,
     (get_param_sess(Name,Value,D)->format('<option value="~w" selected="yes">~w</option>',[Value,Value]);
@@ -1143,7 +1140,7 @@ current_form_var0(N):- param_default_value(N,_).
 %
 is_goog_bot:- get_http_current_request(B),member(user_agent(UA),B),!,atom_contains(UA,'Googlebot').
  
-param_default_value(N,D):-search_filter_name_comment(N,_,D).
+==> (param_default_value(N,D):-search_filter_name_comment(N,_,D)).
 
 
 
@@ -1197,7 +1194,7 @@ action_menu_applied(MenuName,ItemName,Where):-
       format('&nbsp;~w&nbsp;&nbsp;<input type="submit" value="Now" name="Apply">',[Where]),
       format('</label>',[]).
 
-param_default_value(is_context,'BaseKB').
+==> param_default_value(is_context,'BaseKB').
 
 
 
@@ -1216,7 +1213,7 @@ is_context(MT,MT):-no_repeats(is_context0(MT)).
 is_context0(MT):- fail, if_defined(exactlyAssertedEL_first(isa, MT, 'Microtheory',_,_)).
 is_context0('BaseKB').
 
-param_default_value(action_menu_item,'query').
+==> param_default_value(action_menu_item,'query').
 
 
 
@@ -1876,7 +1873,7 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get
             nl_same_pos/0,
             numberlist_at/2,
             object_sub_page/4,
-            param_default_value/2,
+            % param_default_value/2,
             param_matches/2,
             parameter_names/2,
             partOfSpeech/2,
@@ -3063,4 +3060,4 @@ xlisting_web_file.
 t123:- locally(t_l:print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
 
 :- fixup_exports.
-
+:- during_boot(register_logicmoo_browser).
