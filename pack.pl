@@ -1,5 +1,5 @@
 name(xlisting_web).
-version('1.1.115').
+version('1.1.117').
 title('Manipulate and browse prolog runtime over www').
 keywords([source,goal_expansion]).
 author( 'Douglas Miles', 'http://www.linkedin.com/in/logicmoo' ).
