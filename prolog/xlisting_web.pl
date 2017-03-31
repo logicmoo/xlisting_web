@@ -285,7 +285,7 @@ ensure_webserver:- ensure_webserver(3020).
 :- prolog_load_context(directory,Dir),
    DirFor = mpred_online,
    (( \+ user:file_search_path(DirFor,Dir)) ->asserta(user:file_search_path(DirFor,Dir));true),
-   absolute_file_name('../../../../',Y,[relative_to(Dir),file_type(directory)]),
+   absolute_file_name('../../',Y,[relative_to(Dir),file_type(directory)]),
    (( \+ user:file_search_path(pack,Y)) ->asserta(user:file_search_path(pack,Y));true).
 :- attach_packs.
 :- initialization(attach_packs).
@@ -294,9 +294,6 @@ ensure_webserver:- ensure_webserver(3020).
  
 
 
-
-% WANT 
-:- during_boot(doc_collect(true)).
 
 
 :- portray_text(false).  % or Enable portray of strings
@@ -327,7 +324,7 @@ http:location(pixmaps, root(pixmaps), []).
 % File Search Path.
 %
 :- prolog_load_context(directory,Here),atom_concat(Here,'/pixmaps',NewDir),asserta((user:file_search_path(pixmaps,NewDir))).
-user:file_search_path(pixmaps, logicmoo('mpred_online/pixmaps')).
+% user:file_search_path(pixmaps, logicmoo('mpred_online/pixmaps')).
 
 :- during_boot(http_handler(pixmaps(.), http_server_files:serve_files_in_directory(pixmaps), [prefix])).
 
@@ -555,7 +552,7 @@ save_request_in_session(Request):-
 
 
 
-
+:- use_module(library(with_no_x)).
 :- dynamic(lmcache:current_ioet/4).
 :- volatile(lmcache:current_ioet/4).
 
@@ -1654,6 +1651,7 @@ indent_nbsp(X,Chars):-XX is X -1,!, indent_nbsp(XX,OutP),!,sformat(Chars,'~w   '
 
 
 :- multifile baseKB:shared_hide_data/1.
+:- kb_shared(baseKB:shared_hide_data/1).
 
 
 
@@ -1664,12 +1662,12 @@ indent_nbsp(X,Chars):-XX is X -1,!, indent_nbsp(XX,OutP),!,sformat(Chars,'~w   '
 % Shared Hide Data.
 %
 baseKB:shared_hide_data(M:F/A):-nonvar(M),!,baseKB:shared_hide_data(F/A).
-baseKB:shared_hide_data('$si$':'$was_imported_kb_content$'/2):- !,listing_filter(hideMeta).
-baseKB:shared_hide_data(spft/3):- !,listing_filter(hideTriggers).
-baseKB:shared_hide_data(spft/3):- !,listing_filter(hideTriggers).
-baseKB:shared_hide_data(nt/3):- !,listing_filter(hideTriggers).
-baseKB:shared_hide_data(pt/2):- !, listing_filter(hideTriggers).
-baseKB:shared_hide_data(bt/2):- !, listing_filter(hideTriggers).
+baseKB:shared_hide_data('$si$':'$was_imported_kb_content$'/2):- !,is_listing_hidden(hideMeta).
+baseKB:shared_hide_data(spft/3):- !,is_listing_hidden(hideTriggers).
+baseKB:shared_hide_data(spft/3):- !,is_listing_hidden(hideTriggers).
+baseKB:shared_hide_data(nt/3):- !,is_listing_hidden(hideTriggers).
+baseKB:shared_hide_data(pt/2):- !, is_listing_hidden(hideTriggers).
+baseKB:shared_hide_data(bt/2):- !, is_listing_hidden(hideTriggers).
 baseKB:shared_hide_data((_:-
  cwc,
         second_order(_,G19865),
@@ -1682,8 +1680,8 @@ baseKB:shared_hide_data((_:-
 
 baseKB:shared_hide_data(saved_request/_):- !.
 baseKB:shared_hide_data(session_data/_):- !.
-baseKB:shared_hide_data(mpred_prop/3):- !,listing_filter(hideMeta).
-baseKB:shared_hide_data(last_item_offered/1):- !,listing_filter(hideMeta).
+baseKB:shared_hide_data(mpred_prop/3):- !,is_listing_hidden(hideMeta).
+baseKB:shared_hide_data(last_item_offered/1):- !,is_listing_hidden(hideMeta).
 baseKB:shared_hide_data(P0):- strip_module(P0,_,P), compound(P),functor(P,F,A),F\== (/) , !,baseKB:shared_hide_data(F/A).
 
 
@@ -1771,7 +1769,7 @@ head_functor_sort(Result,H1,H2):-compare(Result,H1,H2),!.
 %
 i2tml_hbr(H,B,Ref):- nonvar(Ref),!,pp_i2tml_save_seen(clause(H,B,Ref)).
 i2tml_hbr(H,B,_):- B==true,!, pp_i2tml_save_seen(H).
-i2tml_hbr(H,B,_):- !,pp_i2tml_save_seen((H:-B)).
+i2tml_hbr(H,B,_):- pp_i2tml_save_seen((H:-B)).
 
 
 
@@ -1962,7 +1960,7 @@ get_print_mode(html).
 pp_item_html(_Type,H):-var(H),!.
 pp_item_html(Type,done):-!,section_close(Type),!.
 pp_item_html(_,H):-shown_clause(H),!.
-pp_item_html(_,P):- (listing_filter(P); (compound(P),functor(P,F,A),(listing_filter(F/A);listing_filter(F)))),!.
+pp_item_html(_,P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden(F/A);is_listing_hidden(F)))),!.
 
 pp_item_html(Type,H):- \+ get_print_mode(html), pp_item_html_now(Type,H),!.
 pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp_item_html_now(Type,H))).
@@ -2024,10 +2022,10 @@ show_clause_ref(Ref):- retractall(t_l:last_show_clause_ref(_)),asserta(t_l:last_
 %
 show_clause_ref_now(V):-var(V),!.
 show_clause_ref_now(0):-!.
-show_clause_ref_now(_Ref):- listing_filter(hideClauseRef),!.
-show_clause_ref_now(Ref):- listing_filter(showFilenames), \+ clause_property(Ref,predicate(_)),format('~N~p~N',[clref(Ref)]),!.
+show_clause_ref_now(_Ref):- is_listing_hidden(hideClauseRef),!.
+show_clause_ref_now(Ref):- is_listing_hidden(showFilenames), \+ clause_property(Ref,predicate(_)),format('~N~p~N',[clref(Ref)]),!.
 % write_html(div(class(src_formats),a(href(EditLink), edit)])).
-show_clause_ref_now(Ref):- listing_filter(showFilenames),clause_property(Ref,file(File)),ignore(clause_property(Ref,line_count(Line))),
+show_clause_ref_now(Ref):- is_listing_hidden(showFilenames),clause_property(Ref,file(File)),ignore(clause_property(Ref,line_count(Line))),
   ignore(clause_property(Ref,module(Module))),
     format('<a href="/swish/filesystem/~w#L~w">@file:~w:~w</a>(~w)~N',[File,Line,File,Line,Module]),
     fail. 
@@ -2043,8 +2041,8 @@ show_clause_ref_now(Ref):- clause_property(Ref,erased),
 % Pretty Print I2tml.
 %
 pp_i2tml(Done):-Done==done,!.
-pp_i2tml(T):-var(T),format('~w',[T]),!.
-pp_i2tml(T):-string(T),format('"~w"',[T]).
+pp_i2tml(T):-var(T),!,format('~w',[T]),!.
+pp_i2tml(T):-string(T),!,format('"~w"',[T]).
 pp_i2tml(clause(H,B,Ref)):- !, locally(t_l:current_clause_ref(Ref),pp_i2tml_v((H:-B))).
 pp_i2tml(HB):- find_ref(HB,Ref),!, must_run(locally(t_l:current_clause_ref(Ref),pp_i2tml_v((HB)))).
 pp_i2tml(HB):- locally(t_l:current_clause_ref(none),must_run(pp_i2tml_v((HB)))).
@@ -2084,7 +2082,7 @@ pp_i2tml_0((H :- B)):-B==true,!,pp_i2tml_0((H)),!.
 pp_i2tml_0(((USER:H) :- B)):-USER==user,!,pp_i2tml_0((H:-B)),!.
 pp_i2tml_0((H:-B)):-B==true, !, pp_i2tml_0(H).
 
-pp_i2tml_0(P):- listing_filter(P),!.
+pp_i2tml_0(P):- is_listing_hidden(P),!.
 pp_i2tml_0(was_chain_rule(H)):- pp_i2tml_0(H).
 pp_i2tml_0(M:(H)):-M==user, pp_i2tml_0(H).
 pp_i2tml_0(is_edited_clause(H,B,A)):- pp_i2tml_0(proplst([(clause)=H,before=B,after=A])).
@@ -3057,7 +3055,12 @@ pkif :-
 xlisting_web_file.
 % :- ensure_webserver(6767).
 
-t123:- locally(t_l:print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
+x123:- locally(t_l:print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
+
+% WANT 
+:- during_net_boot(doc_collect(true)).
+
+:- register_logicmoo_browser.
 
 :- fixup_exports.
-:- during_boot(register_logicmoo_browser).
+
