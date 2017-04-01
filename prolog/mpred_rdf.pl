@@ -465,7 +465,7 @@ cyc_to_rdf(mpred_isa(P,PST),svo(F,StubType,S)):- PST=..[StubType,S],rdf_object(S
 cyc_to_rdf(argIsa(P,1,D),domain(P,D)).
 cyc_to_rdf(isa(apathFn(A,Dir),T),isa([apathFn,A,Dir],T)).
 cyc_to_rdf(pathName(A,Dir,String),mudNamed([apathFn,A,Dir],String)).
-cyc_to_rdf(argSingleValueDefault(PAB, 2, V),type_default(A,[P,isThis,V])):-PAB=[P,A,_].
+% cyc_to_rdf(relationMostInstance(PAB, Type, V),type_default(A,[P,isThis,V])):-PAB=[P,A,_].
 cyc_to_rdf(argIsa(P,2,D),range(P,D)):-arity(P,2).
 
 :- flag(rdf_assert_hook_max,_,0).
