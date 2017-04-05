@@ -28,7 +28,6 @@
             edit1term/0,
             edit1term/1,
             ensure_webserver/1,
-            get_print_mode/1,               
             ensure_webserver/0,
             find_cl_ref/2,
             find_ref/2,
@@ -160,7 +159,9 @@
           ]).
 
 
-% :- include(logicmoo(mpred/'mpred_header.pi')).
+:- thread_local(t_l:print_mode/1).
+
+:- include(library('pfc2.0'/'mpred_header.pi')).
 %:- endif.
 :- set_module(class(library)).
 :- use_module(library(attvar_serializer)).
@@ -1429,7 +1430,6 @@ current_line_position(Out,LP):-stream_property(Out,position( Y)),stream_position
 
 
 
-
 %% tmw is det.
 %
 % Tmw.
@@ -1947,10 +1947,6 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get
             write_variable/1,
           
           xlisting_web_file/0)).
-
-:- export(get_print_mode/1).
-get_print_mode(Text):-thread_self_main,!,Text=text.
-get_print_mode(html).
 
 
 %% pp_item_html( ?ARG1, ?ARG2) is det.
