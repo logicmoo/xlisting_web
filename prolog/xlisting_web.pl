@@ -187,7 +187,6 @@
    foobar/1, lmcache:last_http_request/1, lmcache:last_item_offered/1, system:'$init_goal'/3, user:file_search_path/2)).
 
 
-%:- ensure_loaded(system:library(logicmoo_utils)).
 %:- ensure_loaded(library(logicmoo_swilib)).
 :- use_module(library(http/thread_httpd)).
 :- use_module(thread_httpd:library(http/http_dispatch)).
