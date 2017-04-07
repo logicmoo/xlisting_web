@@ -287,8 +287,7 @@ ensure_webserver:- ensure_webserver(3020).
    (( \+ user:file_search_path(DirFor,Dir)) ->asserta(user:file_search_path(DirFor,Dir));true),
    absolute_file_name('../../',Y,[relative_to(Dir),file_type(directory)]),
    (( \+ user:file_search_path(pack,Y)) ->asserta(user:file_search_path(pack,Y));true).
-:- attach_packs.
-:- initialization(attach_packs).
+:- initialization(attach_packs,now).
 % [Required] Load the Logicmoo Library Utils
 :- endif.
  
