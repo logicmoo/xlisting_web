@@ -1151,6 +1151,7 @@ search_filter_name_comment(hideTriggers,'Hide Triggers','1').
 search_filter_name_comment(skipLarge,'No Large','1').
 search_filter_name_comment(showHyperlink,'Hyperlink','1').
 search_filter_name_comment(showFilenames,'Filenames','0').
+search_filter_name_comment(showHUGE,'showHUGE','0').
 search_filter_name_comment(wholePreds,'Whole Preds','0').
 search_filter_name_comment(skipVarnames,'Skip Varnames','0').
 search_filter_name_comment(hideClauseInfo,'Skip ClauseInfo','1').
