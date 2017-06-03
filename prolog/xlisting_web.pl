@@ -49,6 +49,7 @@
             human_language/1,
             i2tml_hbr/3,
             if_html/2,
+            output_html/1,
             indent_nbsp/1,
             indent_nbsp/2,
             indent_nl/0,
@@ -172,6 +173,7 @@
         edit1term(*),
         handler_logicmoo_cyclone(+),
         must_run(*),
+        output_html(//),
         if_html(?, 0),
         return_to_pos(0),
         show_edit_term(0, ?, ?),
@@ -304,7 +306,9 @@ ensure_webserver:- ensure_webserver(3020).
 
 register_logicmoo_browser:- 
   http_handler('/logicmoo/', handler_logicmoo_cyclone, [prefix]), % chunked
-  http_handler('/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]).
+  http_handler('/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]),
+  http_handler('/swish/logicmoo/', handler_logicmoo_cyclone, [prefix]), % chunked
+  http_handler('/swish/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]).
 
 
 
@@ -564,6 +568,7 @@ save_request_in_session(Request):-
 handler_logicmoo_cyclone(Request):- fail, notrace(((is_goog_bot,!,
   format('Content-type: text/html~n~n',[]),
   format('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),flush_output_safe))),!.
+
 handler_logicmoo_cyclone(Request):-
  ignore((
  nodebugx((
@@ -573,18 +578,23 @@ handler_logicmoo_cyclone(Request):-
       current_input(In),current_output(Out),current_error(Err),
    thread_self(ID),
    asserta(lmcache:current_ioet(In,Out,Err,ID)),
-   format('Content-type: text/html~n~n',[]),
+%    format('Content-type: text/html~n~n',[]),
+   html_write:html_current_option(content_type(D)),
+   format('Content-type: ~w~n~n', [D]),
+
    format('<!DOCTYPE html>',[]),
    flush_output_safe,
-      must_run(save_request_in_session(Request)),
+    must_run(save_request_in_session(Request)),
     % member(request_uri(URI),Request),
-      member(path(PATH),Request),
+     member(path(PATH),Request),
     directory_file_path(_,FCALL,PATH),
    once(get_param_req(call,Call);(current_predicate(FCALL/0),Call=FCALL);get_param_sess(call,Call,edit1term)),
    must_run(Call)))))))))),!.
    
 
 
+:- asserta(cp_menu:menu_item(500=places/handler_logicmoo_cyclone,	'LogicMOO')).
+:- asserta(cp_menu:menu_item(500=swish/handler_logicmoo_cyclone,	'LogicMOO')).
 
 
 %% write_begin_html( ?ARG1, ?ARG2, ?ARG3) is det.
@@ -618,8 +628,19 @@ body {
       ignore(URI=''),
       ignore(BASE=''),
      format('<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>',[]),
-     format('<title>~w for ~w</title></head>',[BASE,URI]),
+     format('<title>~w for ~w</title>
+
+<link rel="stylesheet" type="text/css" href="/css/cliopatria.css">
+<link rel="stylesheet" type="text/css" href="/css/menu.css">
+<script type="text/javascript" src="/js/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="/js/cliopatria.js"></script>
+<link rel="stylesheet" type="text/css" href="/www/yui/2.7.0/build/autocomplete/assets/skins/sam/autocomplete.css">
+<script type="text/javascript" src="/www/yui/2.7.0/build/utilities/utilities.js"></script>
+<script type="text/javascript" src="/www/yui/2.7.0/build/datasource/datasource.js"></script>
+<script type="text/javascript" src="/www/yui/2.7.0/build/autocomplete/autocomplete.js"></script></head>',
+   [BASE,URI]),
      format('<body class="yui-skin-sam">',[]),flush_output_safe)),!.
+
    
 
 
@@ -986,6 +1007,8 @@ show_edit_term0(Call,String,SWord):-show_edit_term1(Call,String,SWord).
 do_guitracer:- guitracer,dtrace.
 
 
+output_html(G):- phrase(G, E),html_write:print_html(E),flush_output_safe,!.
+% output_html(html([div([id('cp-menu'), class(menu)], cp_skin: cp_logo_and_menu)]))
 
 
 %% show_edit_term1( :GoalARG1, ?ARG2, ?ARG3) is det.
@@ -995,7 +1018,9 @@ do_guitracer:- guitracer,dtrace.
 show_edit_term1(Call,String,(P=>Q)):-!,show_edit_term1(Call,String,(P;Q;(P=>Q))),!.
 show_edit_term1(Call,String,SWord):- 
  write_begin_html('edit1term',_BASE,URL),!,
-format('
+   output_html(html_requires(plain)),
+   output_html(html([div([id('cp-menu'), class(menu)], cp_menu: cp_menu)])),
+   format('<br/><p>
 <table width="1111" cellspacing="0" cellpadding="0" height="121" id="table4">
  <!-- MSTableType="nolayout" -->
 	<form action="edit1term">
