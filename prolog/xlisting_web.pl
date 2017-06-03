@@ -317,7 +317,7 @@ register_logicmoo_browser:-
 % Hook To [http:location/3] For Module Mpred_www.
 % Location.
 %
-:- http_handler(pixmaps, root(pixmaps), []).
+http:location(pixmaps, root(pixmaps), []).
 
 
 
