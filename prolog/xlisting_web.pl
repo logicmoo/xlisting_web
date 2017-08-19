@@ -575,7 +575,7 @@ handler_logicmoo_cyclone(Request):-
   locally(set_prolog_flag(retry_undefined,false),
     with_no_x(( 
      must_run((
-      current_input(In),current_output(Out),current_error(Err),
+      current_input(In),current_output(Out),current_error_stream(Err),
    thread_self(ID),
    asserta(lmcache:current_ioet(In,Out,Err,ID)),
 %    format('Content-type: text/html~n~n',[]),
