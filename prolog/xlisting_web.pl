@@ -572,7 +572,7 @@ handler_logicmoo_cyclone(Request):- fail, notrace(((is_goog_bot,!,
 handler_logicmoo_cyclone(Request):-
  ignore((
  nodebugx((
-  locally(set_prolog_flag(retry_undefined,false),
+  locally(set_prolog_flag(retry_undefined, none),
     with_no_x(( 
      must_run((
       current_input(In),current_output(Out),current_error_stream(Err),
