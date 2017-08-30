@@ -1444,6 +1444,7 @@ set_line_pos(Out,LP):-
 %
 current_line_position(LP):-current_output(Out),current_line_position(Out,LP).
 
+:- kb_shared(baseKB:wid/3).
 
 
 %% current_line_position( ?ARG1, ?ARG2) is det.
