@@ -565,7 +565,7 @@ save_request_in_session(Request):-
 %
 % Handler Logicmoo Cyclone.
 %
-handler_logicmoo_cyclone(Request):- fail, notrace(((is_goog_bot,!,
+handler_logicmoo_cyclone(Request):- fail, quietly(((is_goog_bot,!,
   format('Content-type: text/html~n~n',[]),
   format('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),flush_output_safe))),!.
 
@@ -1349,7 +1349,7 @@ make_page_pretext_obj(Obj):-
   % forall(no_repeats(M:F/A,(f_to_mfa(Pred/A,M,F,A))),ignore(logOnFailure((this_listing(M:F/A),flush_output_safe)))),
   % forall(no_repeats(M:F/A,(f_to_mfa(Pred/A,M,F,A))),ignore(logOnFailure((reply_object_sub_page(M:F/A),flush_output_safe)))),
   % ignore((fail,catch(mpred_listing(Pred),_,true))),
-  notrace(call_with_time_limit(300,ignore(catch(xlisting_inner(i2tml_hbr,Obj,[]),E,wdmsg(E))))),
+  quietly(call_with_time_limit(300,ignore(catch(xlisting_inner(i2tml_hbr,Obj,[]),E,wdmsg(E))))),
   pp_i2tml_saved_done(Obj))),!.
 
 make_page_pretext_obj(Obj):- writeq(make_page_pretext_obj(Obj)),!.
