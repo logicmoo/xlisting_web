@@ -178,7 +178,7 @@ ensure_starts_with_prefix(A,Prefix,B):- toCamelcase(A,CC),toPropercase(CC,PC),!,
 
 %mpred_isa(Prop,prologHybrid).
 
-transform_term(TermIn,TermOut):-nohtml,transform_term0(TermIn,TermOut).
+transform_term(TermIn,TermOut):-t_l:nohtml,transform_term0(TermIn,TermOut).
 
 transform_term0(Term,Term):- var(Term),!.
 transform_term0(Term,TermOut):- atom(Term),atom_length(Term,L),L>2,to_tclass(Term,TermOut),!.
@@ -242,14 +242,14 @@ transform_term0(Term,Term):-!.
 source_to_txt(S):- source_to_txt(S,stream(current_output),[]).
 
 source_to_txt(S,Out,Opts):- 
-  asserta(nohtml),
+  asserta(t_l:nohtml),
    setup_call_cleanup_each(
      true,
      s_to_html(S,Out,[header(false),format_comments(false)|Opts]),
-     retract(nohtml)).
+     retract(t_l:nohtml)).
 
 
-:- thread_local nohtml/0.
+:- thread_local t_l:nohtml/0.
 
 /* <module> HTML source pretty-printer
 
@@ -389,7 +389,7 @@ skin_hook(Out, Where, Options) :-
 	call(Skin, Where, Out), !.
 skin_hook(_, _, _).
 
-noformat(_,_,_):-nohtml,!.
+noformat(_,_,_):-t_l:nohtml,!.
 noformat(O,F,A):-format(O,F,A).
 
 %%	html_fragments(+Fragments, +In, +Out, +State, +Options) is det.
@@ -414,7 +414,7 @@ get_frag_class(noFC).
 
 html_fragment_new(H, In, Out, State0, State1, Options):-
  class_from_frag(H,Class),
-  locally(t_l:frag_class(Class),
+  locally_tl(frag_class(Class),
    html_fragment(H, In, Out, State0, State1, Options)).
 
 class_from_frag(H,H):-atom(H),!.
@@ -703,7 +703,7 @@ content_escape(0'\n, Out, L0, L) :- !,
 	),
 	assert(lineno).
 
-content_escape(C, Out, L, L) :- nohtml,!,
+content_escape(C, Out, L, L) :- t_l:nohtml,!,
 	put_code(Out, C).
 
 content_escape(0'<, Out, L, L) :- !,

@@ -1299,7 +1299,7 @@ call_for_terms(Call):-
         write_begin_html('search4term',Base,_),
         show_search_form(Obj,Base),
         format('<pre>',[]),        
-        locally(t_l:print_mode(html),with_search_filters(catch(ignore(Call),E,dmsg(E)))),
+        locally_tl(print_mode(html),with_search_filters(catch(ignore(Call),E,dmsg(E)))),
         format('</pre>',[]),
         show_pcall_footer,
         write_end_html)),!.
@@ -1329,7 +1329,7 @@ with_search_filters0(C):-
    search_filter_name_comment(FILTER,_,_),
    session_checked(FILTER), 
    \+ t_l:tl_hide_data(FILTER),!,
-    locally(t_l:tl_hide_data(FILTER),with_search_filters0(C)).
+    locally_tl(tl_hide_data(FILTER),with_search_filters0(C)).
 with_search_filters0(C):-call(C).
 
 
@@ -1459,12 +1459,12 @@ current_line_position(Out,LP):-stream_property(Out,position( Y)),stream_position
 %
 % Tmw.
 %
-tmw:- locally(t_l:print_mode(html),
+tmw:- locally_tl(print_mode(html),
  (rok_portray_clause(a(LP)),
   rok_portray_clause((a(LP):-b([1,2,3,4]))),
   nl,nl,call_u(wid(_,_,KIF)),
   KIF=(_=>_),nl,nl,print(KIF),listing(print_request/1))),!.
-tmw:- locally(t_l:print_mode(html),(print((a(_LP):-b([1,2,3,4]))),nl,nl,wid(_,_,KIF),KIF=(_=>_),nl,nl,print(KIF),listing(print_request/1))),!.
+tmw:- locally_tl(print_mode(html),(print((a(_LP):-b([1,2,3,4]))),nl,nl,wid(_,_,KIF),KIF=(_=>_),nl,nl,print(KIF),listing(print_request/1))),!.
 
 
 
@@ -2064,9 +2064,9 @@ show_clause_ref_now(Ref):- clause_property(Ref,erased),
 pp_i2tml(Done):-Done==done,!.
 pp_i2tml(T):-var(T),!,format('~w',[T]),!.
 pp_i2tml(T):-string(T),!,format('"~w"',[T]).
-pp_i2tml(clause(H,B,Ref)):- !, locally(t_l:current_clause_ref(Ref),pp_i2tml_v((H:-B))).
-pp_i2tml(HB):- find_ref(HB,Ref),!, must_run(locally(t_l:current_clause_ref(Ref),pp_i2tml_v((HB)))).
-pp_i2tml(HB):- locally(t_l:current_clause_ref(none),must_run(pp_i2tml_v((HB)))).
+pp_i2tml(clause(H,B,Ref)):- !, locally_tl(current_clause_ref(Ref),pp_i2tml_v((H:-B))).
+pp_i2tml(HB):- find_ref(HB,Ref),!, must_run(locally_tl(current_clause_ref(Ref),pp_i2tml_v((HB)))).
+pp_i2tml(HB):- locally_tl(current_clause_ref(none),must_run(pp_i2tml_v((HB)))).
 
 
 
@@ -2113,7 +2113,7 @@ pp_i2tml_0(is_disabled_clause(H)):- pp_i2tml_0((disabled)=H).
 % pp_i2tml_0(FET):-fully_expand(change(assert,html_gen),FET,NEWFET),FET\=@=NEWFET,!,pp_i2tml_0(NEWFET).
 
 pp_i2tml_0(spft(P,F,T,W)):-!,
-   locally(t_l:current_why_source(W),pp_i2tml_0(spft(P,F,T))).
+   locally_tl(current_why_source(W),pp_i2tml_0(spft(P,F,T))).
 
 pp_i2tml_0(spft(P,U,U)):- nonvar(U),!, pp_i2tml_1(P:-asserted_by(U)).
 pp_i2tml_0(spft(P,F,T)):- atom(F),atom(T),!, pp_i2tml_1(P:-asserted_in(F:T)).
@@ -3076,7 +3076,7 @@ pkif :-
 xlisting_web_file.
 % :- ensure_webserver(6767).
 
-x123:- locally(t_l:print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
+x123:- locally_tl(print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
 
 % WANT 
 :- during_net_boot(doc_collect(true)).
