@@ -237,7 +237,7 @@
  op(300,fx,'-'))).
 
 
-:- nb_setval(pldoc_options,[ prefer(manual) ]).
+:- thread_initialization(nb_setval(pldoc_options,[ prefer(manual) ])).
 
 :- meta_predicate must_run(0).
 :- meta_predicate must_run(0).
