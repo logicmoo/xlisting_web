@@ -7,7 +7,7 @@
 % Dec 13, 2035
 %
 */
-% :-module(xlisting_web,[ensure_webserver/0,search4term/0]).
+% :-module(xlisting_web,[ensure_sigma/0,search4term/0]).
 %:- if(( ( \+ ((current_prolog_flag(logicmoo_include,Call),Call))) )). 
 :- module(xlisting_web,
           [ action_menu_applied/3,
@@ -27,8 +27,8 @@
             do_guitracer/0,
             edit1term/0,
             edit1term/1,
-            ensure_webserver/1,
-            ensure_webserver/0,
+            ensure_sigma/1,
+            ensure_sigma/0,
             find_cl_ref/2,
             find_ref/2,
             fmtimg/2,
@@ -72,7 +72,7 @@
             nl_same_pos/0,
             numberlist_at/2,
             object_sub_page/4,
-            % ==> param_default_value/2,
+            param_default_value/2,
             param_matches/2,
             parameter_names/2,
             partOfSpeech/2,
@@ -160,34 +160,9 @@
           ]).
 
 
-:- thread_local(t_l:print_mode/1).
 
-:- include(library('pfc2.0'/'mpred_header.pi')).
-%:- endif.
 :- set_module(class(library)).
 :- use_module(library(attvar_serializer)).
-
-:- kb_shared(param_default_value/2).
-
- :- meta_predicate 
-        edit1term(*),
-        handler_logicmoo_cyclone(+),
-        must_run(*),
-        output_html(//),
-        if_html(?, 0),
-        return_to_pos(0),
-        show_edit_term(0, ?, ?),
-        show_edit_term0(0, ?, ?),
-        show_edit_term1(0, ?, ?),
-        with_search_filters(0),
-        with_search_filters0(0).
-:- (multifile http:location/3, http_dispatch:handler/4, http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1, baseKB:shared_hide_data/1, system:'$init_goal'/3, user:file_search_path/2).
-:- (module_transparent edit1term/1, must_run/1, if_html/2, return_to_pos/1, show_edit_term/3, show_edit_term0/3, show_edit_term1/3, with_search_filters/1).
-:- (volatile http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1).
-:- export((current_form_var0/1, get_http_session0/1,  is_context0/1, make_quotable_0/2, pp_i2tml_0/1, pp_i2tml_1/1, put_string0/1, put_string0/2, sanity_test_000/0, show_edit_term0/3, show_edit_term1/3, show_select1/2, show_select2/3)).
-:- multifile((lmcache:last_item_offered/1, http:location/3, http_dispatch:handler/4, http_session:session_data/2, http_session:urandom_handle/1,
-   foobar/1, lmcache:last_http_request/1, lmcache:last_item_offered/1, system:'$init_goal'/3, user:file_search_path/2)).
-
 
 %:- ensure_loaded(library(logicmoo_swilib)).
 :- use_module(library(http/thread_httpd)).
@@ -203,8 +178,13 @@
 :- use_module(library(http/http_parameters)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/html_write)).
+:- use_module(library(with_no_x)).
 
 
+:- use_module(library(pfc)).
+:- set_defaultAssertMt(xlisting_web).
+/*
+:- include(library('pfc2.0'/'mpred_header.pi')).
 :-
  op(1199,fx,('==>')), 
  op(1190,xfx,('::::')),
@@ -235,6 +215,31 @@
  op(350,xfx,'xor'),
  op(300,fx,'~'),
  op(300,fx,'-'))).
+*/
+%:- endif.
+
+:- thread_local(t_l:print_mode/1).
+
+:- kb_shared(param_default_value/2).
+
+ :- meta_predicate 
+        edit1term(*),
+        handler_logicmoo_cyclone(+),
+        must_run(*),
+        output_html(//),
+        if_html(?, 0),
+        return_to_pos(0),
+        show_edit_term(0, ?, ?),
+        show_edit_term0(0, ?, ?),
+        show_edit_term1(0, ?, ?),
+        with_search_filters(0),
+        with_search_filters0(0).
+:- (multifile http:location/3, http_dispatch:handler/4, http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1, baseKB:shared_hide_data/1, system:'$init_goal'/3, user:file_search_path/2).
+:- (module_transparent edit1term/1, must_run/1, if_html/2, return_to_pos/1, show_edit_term/3, show_edit_term0/3, show_edit_term1/3, with_search_filters/1).
+:- (volatile http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1).
+:- export((current_form_var0/1, get_http_session0/1,  is_context0/1, make_quotable_0/2, pp_i2tml_0/1, pp_i2tml_1/1, put_string0/1, put_string0/2, sanity_test_000/0, show_edit_term0/3, show_edit_term1/3, show_select1/2, show_select2/3)).
+:- multifile((lmcache:last_item_offered/1, http:location/3, http_dispatch:handler/4, http_session:session_data/2, http_session:urandom_handle/1,
+   foobar/1, lmcache:last_http_request/1, lmcache:last_item_offered/1, system:'$init_goal'/3, user:file_search_path/2)).
 
 
 :- thread_initialization(nb_setval(pldoc_options,[ prefer(manual) ])).
@@ -252,20 +257,20 @@
 
 www_main_error_to_out(G):- with_main_error_to_output(G).
 
-%% ensure_webserver( ?ARG1) is det.
+%% ensure_sigma( ?ARG1) is det.
 %
 % Ensure Webserver.
 %
-ensure_webserver(Port) :- format(atom(A),'httpd@~w_1',[Port]),thread_property(_,alias(A)),!.
-ensure_webserver(Port) :- on_x_debug(catch((http_server(http_dispatch,[ port(Port), workers(16) ])),E,wdmsg(E))).
+ensure_sigma(Port) :- format(atom(A),'httpd@~w_1',[Port]),thread_property(_,alias(A)),!.
+ensure_sigma(Port) :- on_x_debug(catch((http_server(http_dispatch,[ port(Port), workers(16) ])),E,wdmsg(E))).
 
 
 
-%% ensure_webserver is det.
+%% ensure_sigma is det.
 %
 % Ensure Webserver.
 %
-ensure_webserver:- ensure_webserver(3020).
+ensure_sigma:- ensure_sigma(3020).
 
 :- multifile(http_session:session_data/2).
 :- volatile(http_session:session_data/2).
@@ -308,7 +313,8 @@ register_logicmoo_browser:-
   http_handler('/logicmoo/', handler_logicmoo_cyclone, [prefix]), % chunked
   http_handler('/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]),
   http_handler('/swish/logicmoo/', handler_logicmoo_cyclone, [prefix]), % chunked
-  http_handler('/swish/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]).
+  http_handler('/swish/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]),
+  doc_collect(true).
 
 
 
@@ -356,7 +362,9 @@ print_request([H|T]) :-
 %
 % make quotable  Primary Helper.
 %
-make_quotable_0(SUnq,SObj):-atom_subst(SUnq,'\\','\\\\',SObj0),atom_subst(SObj0,'\n','\\n',SObj1),atom_subst(SObj1,'"','\\\"',SObj).
+make_quotable_0(SUnq0,SObj):-
+  any_to_string(SUnq0,SUnq),
+  atom_subst(SUnq,'\\','\\\\',SObj0),atom_subst(SObj0,'\n','\\n',SObj1),atom_subst(SObj1,'"','\\\"',SObj).
 
 
 
@@ -431,12 +439,11 @@ show_http_session:-must_run(get_http_session(S)),listing(http_session:session_da
 %
 % Make Session.
 %
-make_session(S):- ignore((is_cgi_stream,http_session:http_open_session(S,[renew(false)]))),!.
+make_session(S):- catch((is_cgi_stream->http_session:http_open_session(S,[renew(false)]);true),_,true).
+
+
 
 :- export(get_http_session/1).
-
-
-
 %% get_http_session( ?ARG1) is det.
 %
 % Get Http Session.
@@ -446,18 +453,16 @@ get_http_session(main).
 
 % on_x_log_fail(G):- catch(G,E,(dmsg(E:G),fail)).
 
+
 :- export(get_http_session0/1).
-
-
-
 %% get_http_session0( ?ARG1) is det.
 %
 % Get Http Session Primary Helper.
 %
 get_http_session0(S):- on_x_log_fail((http_session:http_in_session(S))),!.
-get_http_session0(S):- on_x_log_fail((is_cgi_stream,http_session:http_open_session(S,[renew(false)]))),!.
 get_http_session0(S):- on_x_log_fail((get_http_current_request(R),member(session(S),R))),!.
 get_http_session0(S):- on_x_log_fail((get_http_current_request(R),member(cookie([swipl_session=S]),R))),!.
+get_http_session0(S):- is_cgi_stream,catch(((http_session:http_open_session(S,[renew(false)]))),_,true),!.
 
 
 
@@ -555,7 +560,6 @@ save_request_in_session(Request):-
 
 
 
-:- use_module(library(with_no_x)).
 :- dynamic(lmcache:current_ioet/4).
 :- volatile(lmcache:current_ioet/4).
 
@@ -565,13 +569,19 @@ save_request_in_session(Request):-
 %
 % Handler Logicmoo Cyclone.
 %
-handler_logicmoo_cyclone(Request):- fail, quietly(((is_goog_bot,!,
-  format('Content-type: text/html~n~n',[]),
-  format('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),flush_output_safe))),!.
+handler_logicmoo_cyclone(_):- quietly(is_goog_bot),!,
+  quietly((format('Content-type: text/html~n~n',[]),
+  format('<!DOCTYPE html><html><head></head><body><pre></pre></body></html>~n~n',[]),
+  flush_output_safe)),!.
+handler_logicmoo_cyclone(Request):- quietly(is_goog_bot),!,
+  quietly((format('Content-type: text/html~n~n',[]),
+  format('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),
+  flush_output_safe)),!.
 
 handler_logicmoo_cyclone(Request):-
  ignore((
  nodebugx((
+  ignore(get_http_session(_)), 
   locally(set_prolog_flag(retry_undefined, none),
     with_no_x(( 
      must_run((
@@ -588,7 +598,7 @@ handler_logicmoo_cyclone(Request):-
     % member(request_uri(URI),Request),
      member(path(PATH),Request),
     directory_file_path(_,FCALL,PATH),
-   once(get_param_req(call,Call);(current_predicate(FCALL/0),Call=FCALL);get_param_sess(call,Call,edit1term)),
+   once(get_param_req(webproc,Call);(current_predicate(FCALL/0),Call=FCALL);get_param_sess(webproc,Call,edit1term)),
    must_run(Call)))))))))),!.
    
 
@@ -752,58 +762,70 @@ cvt_param_to_term(In,Obj):-cvt_param_to_term(In,Obj,_Vs),!.
 cvt_param_to_term(Obj,Obj).
 
 
-
+:- file_begin(pfc).
+:- thread_local(t_l:no_cycstrings/0).
+:- asserta(t_l:no_cycstrings).
 
 %% param_default_value( ?ARG1, ?ARG2) is det.
 %
 % Param Default Value.
 %
+==> combo_default_value(human_language,1,'EnglishLanguage').
 
-==>(param_default_value(human_language,'EnglishLanguage')).
+:- kb_shared(combo_default_value/2).
 
-
+combo_default_value(N,_,V) ==> param_default_value(N,V).
+combo_default_value(Pred,Arity,_Value)==> {kb_shared(Pred/Arity)}.
 
 %% human_language( ?ARG1) is det.
 %
 % Human Language.
 %
-human_language('AlbanianLanguage').
-human_language('ArabicLanguage').
-human_language('BasqueLanguage').
-human_language('CatalanLanguage').
-human_language('ChineseLanguage').
-human_language('DanishLanguage').
-human_language('EnglishLanguage'). 
-human_language('FarsiLanguage').
-human_language('FinnishLanguage').
-human_language('FrenchLanguage').
-human_language('GalicianLanguage').
-human_language('GermanLanguage').
-human_language('HebrewLanguage').
-human_language('IndonesianLanguage').
-human_language('ItalianLanguage').
-human_language('JapaneseLanguage').
-human_language('MalayLanguage').
-human_language('NorwegianBokmalLanguage').
-human_language('NorwegianNorskLanguage').
-human_language('PolishLanguage').
-human_language('PortugueseLanguage').
-human_language('SpanishLanguage').
-human_language('ThaiLanguage').
-human_language('de').
 
-==> param_default_value(call,edit1term).
-
-==> param_default_value(N,V):-
-  member(N=V,['prover'='proverPTTP','apply'='find','term'='',action_below=query,'action_above'='query','context'='BaseKB','flang'='CLIF','find'='tHumanHead','xref'='Overlap','POS'='N','humanLang'='EnglishLanguage','olang'='CLIF','sExprs'='1','webDebug'='1','displayStart'='0','displayMax'='100000']).
-
-==> param_default_value(request_uri,'/logicmoo/').
-==> param_default_value(logic_lang_name,'CLIF').
-==> param_default_value(olang,'CLIF').
-==> param_default_value(find,'tHumanHead').
+human_language("AlbanianLanguage").
+human_language("ArabicLanguage").
+human_language("BasqueLanguage").
+human_language("CatalanLanguage").
+human_language("ChineseLanguage").
+human_language("DanishLanguage").
+human_language("EnglishLanguage"). 
+human_language("FarsiLanguage").
+human_language("FinnishLanguage").
+human_language("FrenchLanguage").
+human_language("GalicianLanguage").
+human_language("GermanLanguage").
+human_language("HebrewLanguage").
+human_language("IndonesianLanguage").
+human_language("ItalianLanguage").
+human_language("JapaneseLanguage").
+human_language("MalayLanguage").
+human_language("NorwegianBokmalLanguage").
+human_language("NorwegianNorskLanguage").
+human_language("PolishLanguage").
+human_language("PortugueseLanguage").
+human_language("SpanishLanguage").
+human_language("ThaiLanguage").
+human_language("de").
 
 
+param_default_value(request_uri,'/logicmoo/').
+param_default_value(olang,'CLIF').
+param_default_value(find,'tHumanHead').
+param_default_value(N,V):-
+  member(N=V,[
+     webproc=edit1term,
+     'prover'='proverPTTP',
+     'apply'='find',
+     'term'='',
+     action_below=query,
+     'action_above'='query',
+     'context'='BaseKB',
+     'flang'='CLIF','find'='tHumanHead','xref'='Overlap','POS'='N',
+     'humanLang'='EnglishLanguage','olang'='CLIF','sExprs'='1',
+     'webDebug'='1','displayStart'='0','displayMax'='100000']).
 
+
+combo_default_value(logic_lang_name,2,'CLIF').
 %% logic_lang_name( ?ARG1, ?ARG2) is det.
 %
 % Logic Language Name.
@@ -816,23 +838,22 @@ logic_lang_name('SUO-KIF',"SUO-KIF").
 logic_lang_name('TPTP',"TPTP (fof/cnf)").
 logic_lang_name('OWL',"OWL").
 
-==> param_default_value(prover_name,'proverPTTP').
 
 
-
+combo_default_value(prover_name,2,'proverPTTP').
 %% prover_name( ?ARG1, ?ARG2) is det.
 %
 % Prover Name.
 %
-prover_name("proverCyc","CycL (LogicMOO)").
-prover_name("proverPFC","PFC").
-prover_name("proverPTTP","PTTP (LogicMOO)").
-prover_name("proverDOLCE","DOLCE (LogicMOO)").
-
-==> param_default_value(partOfSpeech,'N').
+prover_name(proverCyc,"CycL (LogicMOO)").
+prover_name(proverPFC,"PFC").
+prover_name(proverPTTP,"PTTP (LogicMOO)").
+prover_name(proverDOLCE,"DOLCE (LogicMOO)").
 
 
 
+
+combo_default_value(partOfSpeech,2,'N').
 %% partOfSpeech( ?ARG1, ?ARG2) is det.
 %
 % Part Of Speech.
@@ -866,8 +887,8 @@ show_select2(Name,Pred,Options):-
     must_run(param_default_value(Name,D); param_default_value(Pred,D)),!,
     get_param_sess(Name,UValue,D),
     format('<select name="~w">',[Name]),
-    forall(Call,
-       (((member(atom_subst(Item,ItemName),Options) -> atom_subst(Value,Item,ItemName,NValue); NValue=Value),
+    forall(no_repeats(Call),
+       (((member(atom_subst(Item,ItemName),Options) -> (any_to_string(Value,ValueS),atom_subst(ValueS,Item,ItemName,NValue)); NValue=Value),
         (((param_matches(UValue,ID);param_matches(UValue,NValue)) -> format('<option value="~w" selected="yes">~w</option>',[ID,NValue]);
                    format('<option value="~w">~w</option>',[ID,Value])))))),
     format('</select>',[]),!.
@@ -1161,7 +1182,7 @@ current_form_var0(N):- param_default_value(N,_).
 %
 is_goog_bot:- get_http_current_request(B),member(user_agent(UA),B),!,atom_contains(UA,'Googlebot').
  
-==> (param_default_value(N,D):-search_filter_name_comment(N,_,D)).
+param_default_value(N,D):-search_filter_name_comment(N,_,D).
 
 
 
@@ -1216,10 +1237,8 @@ action_menu_applied(MenuName,ItemName,Where):-
       format('&nbsp;~w&nbsp;&nbsp;<input type="submit" value="Now" name="Apply">',[Where]),
       format('</label>',[]).
 
-==> param_default_value(is_context,'BaseKB').
 
-
-
+combol_default_value(is_context,2,'BaseKB').
 %% is_context( ?ARG1, ?ARG2) is det.
 %
 % If Is A Context.
@@ -1232,13 +1251,14 @@ is_context(MT,MT):-no_repeats(is_context0(MT)).
 %
 % If Is A Context Primary Helper.
 %
-is_context0(MT):- fail, if_defined(exactlyAssertedEL_first(isa, MT, 'Microtheory',_,_)).
-is_context0('BaseKB').
-
-==> param_default_value(action_menu_item,'query').
-
+is_context0(MT):- if_defined(exactlyAssertedEL_first(isa, MT, 'tMicrotheory',_,_),fail).
+is_context0(MT):- if_defined(isa(MT,'tMicrotheory'),fail).
+is_context0('BaseKB').                           
 
 
+
+combol_default_value(action_menu_item,2,'query').
+arg2Isa(action_menu_item,xtPrologString).
 %% action_menu_item( ?ARG1, ?ARG2) is det.
 %
 % Action Menu Item.
@@ -1267,7 +1287,7 @@ action_menu_item('NonMonotonic',"Treat $item NonMonotonic").
 %
 % Get Request Variables.
 %
-get_request_vars(Format):- ignore(Exclude=[term,find,session_data,call,user_agent,referer,session,request_uri,accept]),
+get_request_vars(Format):- ignore(Exclude=[term,find,session_data,webproc,user_agent,referer,session,request_uri,accept]),
    findall(N=V,(current_form_var(N),\+ member(N,Exclude),once(get_param_sess(N,V))),NVs),
    forall(member(N=V,NVs),format(Format,[N,V])).
 
@@ -1310,7 +1330,7 @@ show_search_form(Obj,Base):-
    must_run(
     (
         format('<form action="search4term" target="_self"><font size="-3"> Apply ',[]),
-        action_menu_applied('action_below',"Checked or Clicked","&nbsp;below&nbsp;"),
+        action_menu_applied('action_below','Checked or Clicked',"&nbsp;below&nbsp;"),
         format('&nbsp;&nbsp;&nbsp;find = <input id="find" type="text" name="find" value="~q">~@  Base = ~w</font> <a href="edit1term" target="_top">edit1term</a> <hr/></form>~n~@',
             [Obj,show_search_filters('&nbsp;&nbsp;'),Base,add_form_script]))),  !.
 
@@ -1637,7 +1657,7 @@ term_to_pretty_string(H,HS):-
 fmtimg(N,Alt):- get_print_mode(html),!,
  make_quotable(Alt,AltQ),
  url_encode(Alt,AltS),
- format('~N<a href="?call=edit1term&term= ~w" target="_parent"><img src="/pixmaps/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
+ format('~N<a href="?webproc=edit1term&term= ~w" target="_parent"><img src="/pixmaps/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
 fmtimg(_,_).
 
 
@@ -1770,7 +1790,9 @@ find_cl_ref(H,Ref):- clause(H,true,Ref),clause(HH,true,Ref),H=@=HH,!.
 %
 find_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
 find_ref(H,Ref):- find_cl_ref(H,Ref),!.
-find_ref(This,Ref):- '$si$':'$was_imported_kb_content$'(A,CALL),arg(1,CALL,This),clause('$si$':'$was_imported_kb_content$'(A,CALL),true,Ref),!.
+find_ref(This,Ref):- 
+   '$si$':'$was_imported_kb_content$'(A,CALL),
+   arg(1,CALL,This),clause('$si$':'$was_imported_kb_content$'(A,CALL),true,Ref),!.
 find_ref(M:This,Ref):- atom(M),!,find_ref(This,Ref).
 
 
@@ -1851,9 +1873,9 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get
             do_guitracer/0,
             edit1term/0,
             edit1term/1,
-            ensure_webserver/1,
+            ensure_sigma/1,
             get_print_mode/1,               
-            ensure_webserver/0,
+            ensure_sigma/0,
             find_cl_ref/2,
             find_ref/2,
             fmtimg/2,
@@ -3074,14 +3096,15 @@ pkif :-
 
 
 xlisting_web_file.
-% :- ensure_webserver(6767).
+% :- ensure_sigma(6767).
 
 x123:- locally_tl(print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
 
 % WANT 
-:- during_net_boot(doc_collect(true)).
+:- during_net_boot(register_logicmoo_browser).
 
 :- register_logicmoo_browser.
 
-:- fixup_exports.
+:- retractall(t_l:no_cycstrings).
+%:- fixup_exports.
 
