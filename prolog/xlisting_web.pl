@@ -26,6 +26,7 @@
             cvt_param_to_term/3,
             do_guitracer/0,
             edit1term/0,
+            output_telnet_console/1,
             edit1term/1,
             ensure_sigma/1,
             ensure_sigma/0,
@@ -50,6 +51,8 @@
             i2tml_hbr/3,
             if_html/2,
             output_html/1,
+            write_html/1,
+            show_map_legend/0,
             indent_nbsp/1,
             indent_nbsp/2,
             indent_nl/0,
@@ -609,7 +612,7 @@ handler_logicmoo_cyclone(Request):-
 
 %% write_begin_html( ?ARG1, ?ARG2, ?ARG3) is det.
 %
-% Write Begin Html.
+% Write Begin HTML.
 %
 write_begin_html(B,BASE,URI):-  
   must_run((
@@ -658,7 +661,7 @@ body {
 
 %% write_end_html is det.
 %
-% Write End Html.
+% Write End HTML.
 %
 write_end_html:- flush_output_safe,format('</body></html>~n~n',[]),flush_output_safe,!.
 
@@ -1027,9 +1030,68 @@ show_edit_term0(Call,String,SWord):-show_edit_term1(Call,String,SWord).
 %
 do_guitracer:- guitracer,dtrace.
 
+output_telnet_console(Port):- HttpPort is Port +100,
+  sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="300" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
+  write_html(HTML).
 
-output_html(G):- phrase(G, E),html_write:print_html(E),flush_output_safe,!.
+
+output_html(Var):- var(Var),!,term_to_atom(Var,Atom),output_html(pre([Atom])).
+output_html(HTML):- atomic(HTML),!,write_html(HTML).
+output_html(html(HTML)):- nonvar(HTML),!,output_html(HTML).
+%output_html(HTML):- is_list(HTML),send_tokens(HTML).
+output_html(HTML):- phrase(html(HTML), Tokens),send_tokens(Tokens).
+
+send_tokens(Tokens):- with_output_to(string(HTMLString), html_write:print_html(Tokens)),write_html(HTMLString).
+
+%write_html(HTMLString):- ((pengines:pengine_self(_) -> pengines:pengine_output(HTMLString) ;write(HTMLString))),!.
+write_html(HTMLString):- (nb_current('$in_swish',t) -> pengines:pengine_output(HTMLString) ;write(HTMLString)).
+
+%write_html(HTML):- phrase(html(HTML), Tokens), html_write:print_html(Out, Tokens))).
 % output_html(html([div([id('cp-menu'), class(menu)], cp_skin: cp_logo_and_menu)]))
+
+show_map_legend:- write_html('<table border=0 cellpadding=5 bgcolor="#000000">
+<tr><td>
+<pre>
+ <div style="background-color:#ddd;float:left">
+  <code><font size=2 face="Courier New, FixedSys, Lucida Console, Courier New, Courier"><font color="#0">
+</font><font color="#C0C0C0">The map key is:
+
+        </font><font color="#FF00FF">#</font><font color="#C0C0C0">  - You                         --- - North/south wall
+        </font><font color="#FF0000">*</font><font color="#C0C0C0">  - Other players                |  - East/west wall
+        </font><font color="#FFFF00">!</font><font color="#C0C0C0">  - Mobiles                      +  - Door (closed)
+        </font><font color="#00FFFF">!</font><font color="#C0C0C0">  - Pet/other charmed mob        </font><font color="#0000FF">+</font><font color="#C0C0C0">  - Door (locked)
+        </font><font color="#FF0000">!</font><font color="#C0C0C0">  - Angry mob (with Sense        &gt;  - Up exit
+             Anger cast)                  </font><font color="#808000">&gt;</font><font color="#C0C0C0">  - Up exit (closed)
+        </font><font color="#00FF00">!</font><font color="#C0C0C0">  - Unkillable Mob               &lt;  - Down exit
+        </font><font color="#00FF00">$</font><font color="#C0C0C0">  - Shopkeeper                   </font><font color="#808000">&lt;</font><font color="#C0C0C0">  - Down exit (closed)
+
+
+</font><font color="#FFFFFF"><span style="color: #FFFFFF; background: #000080">[ </span></font><font color="#FFFF00"><span style="color: #FFFF00; background: #000080">Paging</span></font><font color="#FFFFFF"><span style="color: #FFFFFF; background: #000080"> : (Enter), (T)op, (Q)uit, (B)ack, (R)efresh, (L)ast, (A)ll ]</span></font><font color="#C0C0C0">: 
+
+
+       </font><font color="#00FFFF">[</font><font color="#FFFFFF">?</font><font color="#00FFFF">]</font><font color="#C0C0C0"> - Area exit                    </font><font color="#800000">#</font><font color="#C0C0C0">  - PK-flagged room             
+       </font><font color="#00FF00">[</font><font color="#FFFFFF">?</font><font color="#00FF00">]</font><font color="#C0C0C0"> - Clan public hall exit        </font><font color="#FF0000">D</font><font color="#C0C0C0">  - Donation room
+
+        
+Other characters on the map represent the terrain of the local area. Some 
+of the major terrains are:
+
+        [</font><font color="#FF00FF"> </font><font color="#C0C0C0">]   Inside             .</font><font color="#FF00FF"> </font><font color="#C0C0C0">.   City
+        </font><font color="#008000">,</font><font color="#FF00FF"> </font><font color="#008000">`</font><font color="#C0C0C0">   Field              </font><font color="#00FF00">;</font><font color="#FF00FF"> </font><font color="#00FF00">;</font><font color="#C0C0C0">   Hills
+        </font><font color="#808000">/</font><font color="#FF00FF"> </font><font color="#808000">\\</font><font color="#C0C0C0">   Mountain           </font><font color="#0000FF">~</font><font color="#FF00FF"> </font><font color="#0000FF">~</font><font color="#C0C0C0">   Water
+        </font><font color="#0000FF">~</font><font color="#FF00FF"> </font><font color="#0000FF">~</font><font color="#C0C0C0">   Waternoswim        </font><font color="#008080">.</font><font color="#FF00FF"> </font><font color="#008080">.</font><font color="#C0C0C0">   Air
+        </font><font color="#808000">~</font><font color="#FF00FF"> </font><font color="#808000">~</font><font color="#C0C0C0">   Desert             </font><font color="#FFFF00">%</font><font color="#FF00FF"> </font><font color="#FFFF00">%</font><font color="#C0C0C0">   Quicksand
+        </font><font color="#000080">~</font><font color="#FF00FF"> </font><font color="#000080">~</font><font color="#C0C0C0">   Underwater         </font><font color="#00FFFF">~</font><font color="#FF00FF"> </font><font color="#00FFFF">~</font><font color="#C0C0C0">   Ice
+        </font><font color="#0000FF">.</font><font color="#FF00FF"> </font><font color="#0000FF">.</font><font color="#C0C0C0">   Underground        -</font><font color="#FF00FF"> </font><font color="#C0C0C0">-   East/West road
+        . .   North/South road   </font><font color="#00FFFF">~ ~</font><font color="#C0C0C0">   River
+        </font><font color="#FF0000">/</font><font color="#FF00FF"> </font><font color="#FF0000">\\</font><font color="#C0C0C0">   Volcano            </font><font color="#000080">%</font><font color="#FF00FF"> </font><font color="#000080">%</font><font color="#C0C0C0">   Cave
+        # #   Dungeon            </font><font color="#008000">( *</font><font color="#C0C0C0">   Forest
+
+Other terrain types not listed here are for aesthetic purposes only, such
+as </font><font color="#008080">[ ]</font><font color="#C0C0C0"> for temples, </font><font color="#FFFF00">* *</font><font color="#C0C0C0"> for shops, etc.
+
+See the related helps listed above for more configuration options with the
+</font></font></code></div></pre></td></tr></table>'),!.
 
 
 %% show_edit_term1( :GoalARG1, ?ARG2, ?ARG3) is det.
@@ -1409,7 +1471,6 @@ object_sub_page(Obj, Options) -->
 
 
 
-%write_html(HTML):- phrase(html(HTML), Tokens), html_write:print_html(Out, Tokens))).
 
 
 
@@ -1998,7 +2059,7 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get
 
 %% pp_item_html( ?ARG1, ?ARG2) is det.
 %
-% Pretty Print Item Html.
+% Pretty Print Item HTML.
 %
 pp_item_html(_Type,H):-var(H),!.
 pp_item_html(Type,done):-!,section_close(Type),!.
@@ -2024,7 +2085,7 @@ lmcache:last_item_offered(unknonw).
 
 %% pp_item_html_now( ?ARG1, ?ARG2) is det.
 %
-% Pretty Print Item Html Now.
+% Pretty Print Item HTML Now.
 %
 pp_item_html_now(Type,H):-    
    flag(matched_assertions,X,X+1),!,
@@ -2037,7 +2098,7 @@ pp_item_html_now(Type,H):-
 
 %% pp_item_html_if_in_range( ?ARG1, ?ARG2) is det.
 %
-% Pretty Print Item Html If In Range.
+% Pretty Print Item HTML If In Range.
 %
 pp_item_html_if_in_range(Type,H):- section_open(Type),!,pp_i2tml(H),!,nl.
 
@@ -2159,7 +2220,7 @@ pp_i2tml_0(HB):-pp_i2tml_1(HB).
 
 %% if_html( ?ARG1, :GoalARG2) is det.
 %
-% If Html.
+% If HTML.
 %
 if_html(F,A):-get_print_mode(html),!,format(F,[A]).
 if_html(_,A):-A.
