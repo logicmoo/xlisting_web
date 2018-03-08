@@ -121,7 +121,11 @@ write_count(H,N):- writeq(H:N),write(', ').
 :- use_module(library(lists)).
 :- use_module(library(codesio)).
 :- use_module(library(prolog_colour)).
-:- use_module(library('pldoc/doc_process')).
+:- if(exists_source(library(pldoc))).
+:- user:use_module(library(pldoc), []).
+	% Must be loaded before doc_process
+:- user:use_module(library(pldoc/doc_process)).
+:- endif.
 :- use_module(library('pldoc/doc_colour')).
 :- use_module(library('pldoc/doc_html')).
 :- use_module(library('pldoc/doc_index')).
@@ -225,7 +229,6 @@ transform_term0(Term,Term):-!.
 :- use_module(library('pldoc/doc_html')).
 :- use_module(library('pldoc/doc_wiki')).
 :- use_module(library('pldoc/doc_modes')).
-:- use_module(library('pldoc/doc_process')).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_path)).
 :- use_module(library(prolog_xref)).
