@@ -1023,12 +1023,21 @@ show_edit_term0(Call,String,SWord):-show_edit_term1(Call,String,SWord).
 
 
 
+ensure_guitracer_x:-
+ absolute_file_name(swi(xpce/prolog/lib),X), assert_if_new(user:library_directory(X)), 
+ user:use_module(library(pce_prolog_xref)),
+ user:use_module(library(emacs_extend)),
+ user:use_module(library(trace/gui)),
+ user:use_module(library(pce)),
+ user:use_module(library(gui_tracer)),
+ reload_library_index.
+
 
 %% do_guitracer is det.
 %
 % Do Guitracer.
 %
-do_guitracer:- guitracer,dtrace.
+do_guitracer:- ensure_guitracer_x, guitracer,dtrace.
 
 output_telnet_console(Port):- HttpPort is Port +100,
   sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="300" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
