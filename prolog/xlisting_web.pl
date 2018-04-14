@@ -166,6 +166,7 @@
 
 :- set_module(class(library)).
 :- use_module(library(attvar_serializer)).
+:- use_module(library(no_repeats)).
 
 %:- ensure_loaded(library(logicmoo_swilib)).
 :- use_module(library(http/thread_httpd)).
@@ -177,14 +178,22 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_log)).
+:- use_module(library(http/http_client)).
 :- use_module(library(http/http_server_files)).
 :- use_module(library(http/http_parameters)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/html_write)).
 :- use_module(library(with_no_x)).
 
+:- use_module(library(with_thread_local)).
 
-:- use_module(library(pfc)).
+
+:- use_module(library(predicate_streams)).
+:- use_module(library(pfc_lib)).
+:- use_module(library(butterfly)).
+
+
+
 :- set_defaultAssertMt(xlisting_web).
 /*
 :- include(library('pfc2.0'/'mpred_header.pi')).
@@ -583,13 +592,16 @@ handler_logicmoo_cyclone(Request):- quietly(is_goog_bot),!,
 
 handler_logicmoo_cyclone(Request):-
  ignore((
- nodebugx((
+ %nodebugx
+ ((
   ignore(get_http_session(_)), 
   locally(set_prolog_flag(retry_undefined, none),
-    with_no_x(( 
+    % with_no_x
+    (( 
      must_run((
-      current_input(In),current_output(Out),current_error_stream(Err),
-   thread_self(ID),
+      current_input(In),current_output(Out),
+       (stream_property(Err,file_no(2));current_error_stream(Err)),
+   thread_self(ID),!,
    asserta(lmcache:current_ioet(In,Out,Err,ID)),
 %    format('Content-type: text/html~n~n',[]),
    html_write:html_current_option(content_type(D)),
@@ -1724,10 +1736,10 @@ term_to_pretty_string(H,HS):-
 %
 % Fmtimg.
 %
-fmtimg(N,Alt):- get_print_mode(html),!,
+fmtimg(N,Alt):- is_html_mode,!,
  make_quotable(Alt,AltQ),
  url_encode(Alt,AltS),
- format('~N<a href="?webproc=edit1term&term= ~w" target="_parent"><img src="/pixmaps/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
+ format('~N<a href="?webproc=edit1term&term=~w" target="_parent"><img src="/pixmaps/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
 fmtimg(_,_).
 
 
@@ -1738,7 +1750,7 @@ fmtimg(_,_).
 %
 % Indent Nbsp.
 %
-indent_nbsp(X):-get_print_mode(html),forall(between(0,X,_),format('&nbsp;')),!.
+indent_nbsp(X):-is_html_mode,forall(between(0,X,_),format('&nbsp;')),!.
 indent_nbsp(X):-forall(between(0,X,_),format('~t',[])),!.
 
 
@@ -1860,8 +1872,7 @@ find_cl_ref(H,Ref):- clause(H,true,Ref),clause(HH,true,Ref),H=@=HH,!.
 %
 find_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
 find_ref(H,Ref):- find_cl_ref(H,Ref),!.
-find_ref(This,Ref):- 
-   '$si$':'$was_imported_kb_content$'(A,CALL),
+find_ref(This,Ref):- call(call,'$si$':'$was_imported_kb_content$'(A,CALL)),
    arg(1,CALL,This),clause('$si$':'$was_imported_kb_content$'(A,CALL),true,Ref),!.
 find_ref(M:This,Ref):- atom(M),!,find_ref(This,Ref).
 
@@ -1916,7 +1927,7 @@ pp_i2tml_save_seen(HB):- assertz_if_new(sortme_buffer(_Obj,HB)),!.
 %
 % Section Open.
 %
-section_open(Type):-  once(shown_subtype(Type)->true;((get_print_mode(html)->format('~n</pre><hr>~w<hr><pre>~n<font face="verdana,arial,sans-serif">',[Type]);(draw_line,format('% ~w~n~n',[Type]))),asserta(shown_subtype(Type)))),!.
+section_open(Type):-  once(shown_subtype(Type)->true;((is_html_mode->format('~n</pre><hr>~w<hr><pre>~n<font face="verdana,arial,sans-serif">',[Type]);(draw_line,format('% ~w~n~n',[Type]))),asserta(shown_subtype(Type)))),!.
 
 
 
@@ -1924,7 +1935,7 @@ section_open(Type):-  once(shown_subtype(Type)->true;((get_print_mode(html)->for
 %
 % Section Close.
 %
-section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get_print_mode(html)->format('</font>\n</pre><hr/><pre>',[]);draw_line));true.
+section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_html_mode->format('</font>\n</pre><hr/><pre>',[]);draw_line));true.
 
 :- export((action_menu_applied/3,
             action_menu_item/2,
@@ -1944,7 +1955,7 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(get
             edit1term/0,
             edit1term/1,
             ensure_sigma/1,
-            get_print_mode/1,               
+            %get_print_mode/1,               
             ensure_sigma/0,
             find_cl_ref/2,
             find_ref/2,
@@ -2075,7 +2086,7 @@ pp_item_html(Type,done):-!,section_close(Type),!.
 pp_item_html(_,H):-shown_clause(H),!.
 pp_item_html(_,P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden(F/A);is_listing_hidden(F)))),!.
 
-pp_item_html(Type,H):- \+ get_print_mode(html), pp_item_html_now(Type,H),!.
+pp_item_html(Type,H):- \+ is_html_mode, pp_item_html_now(Type,H),!.
 pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp_item_html_now(Type,H))).
 
 :- dynamic(lmcache:last_item_offered/1).
@@ -2231,7 +2242,7 @@ pp_i2tml_0(HB):-pp_i2tml_1(HB).
 %
 % If HTML.
 %
-if_html(F,A):-get_print_mode(html),!,format(F,[A]).
+if_html(F,A):-is_html_mode,!,format(F,[A]).
 if_html(_,A):-A.
 
 
@@ -2249,7 +2260,7 @@ pp_i2tml_1(H):-
 pp_i2tml_1(_H):- t_l:current_clause_ref(Ref),
     if_html('<font size="1">~@</font>',show_clause_ref(Ref)),fail.
 
-pp_i2tml_1(H):- get_print_mode(html), 
+pp_i2tml_1(H):- is_html_mode, 
   term_to_pretty_string(H,ALT)->
    functor_to_color(H,FC)->fmtimg(FC,ALT)->
     format('<input type="checkbox" name="assertion[]" value="~w">',[ALT]),fail.
@@ -2359,7 +2370,7 @@ write_atom_link(L,N):-must_run((write_atom_link(atom(W),L,N),format('~w',[W]))),
 write_atom_link(W,A/_,N):-atom(A),!,write_atom_link(W,A,N).
 write_atom_link(W,C,N):-compound(C),get_functor(C,F,A),!,write_atom_link(W,F/A,N).
 %write_atom_link(W,_,N):- thread_self_main,!,write_term_to_atom_one(W,N),!.
-write_atom_link(W,_,N):- must_run(nonvar(W)),\+ get_print_mode(html),write_term_to_atom_one(W,N),!.
+write_atom_link(W,_,N):- must_run(nonvar(W)),\+ is_html_mode,write_term_to_atom_one(W,N),!.
 write_atom_link(W,A,N):- nonvar(W),catch((term_to_pretty_string(A,AQ),
    url_encode(AQ,URL),
    format(W,'<a href="?f=~w">~w</a>',[URL,AQ])),_,write_term_to_atom_one(W,N)).
@@ -2565,7 +2576,7 @@ put_string0([H|T]) :-
 %
 % Put String.
 %
-put_string(A,B):- get_print_mode(html),!,
+put_string(A,B):- is_html_mode,!,
   with_output_to(atom(S),put_string0(A,B)),
   url_iri(URL,S),format('<a href="?f= ~w">~w</a>',[URL,S]).
 
