@@ -78,7 +78,7 @@
             param_default_value/2,
             param_matches/2,
             parameter_names/2,
-            partOfSpeech/2,
+            %partOfSpeech/2,
             portable_display/1,
             portable_listing/0,
             portable_listing/1,
@@ -96,8 +96,7 @@
             pp_now/0,
             print_request/1,
             prover_name/2,
-            put_string/1,
-            put_string/2,
+            
             reply_object_sub_page/1,
             reset_assertion_display/0,
             return_to_pos/1,
@@ -126,7 +125,7 @@
             show_search_filtersTop/1,
             term_to_pretty_string/2,
             this_listing/1,
-            tmw/0,
+            test_tmw/0,
             tovl/3,
             url_decode/2,
             url_decode_term/2,
@@ -145,7 +144,7 @@
             write_end_html/0,
             write_oper/5,
             write_out/5,
-            write_out/7,
+            write_oout/7,
             write_tail/2,
             write_term_to_atom_one/2,
             write_variable/1,
@@ -163,9 +162,9 @@
           ]).
 
 
-
 :- set_module(class(library)).
 :- use_module(library(attvar_serializer)).
+:- use_module(library(each_call_cleanup)).
 :- use_module(library(no_repeats)).
 
 %:- ensure_loaded(library(logicmoo_swilib)).
@@ -173,28 +172,22 @@
 :- use_module(thread_httpd:library(http/http_dispatch)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/html_write)).
-:- use_module(library(http/html_head)).
-:- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_log)).
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_server_files)).
 :- use_module(library(http/http_parameters)).
-:- use_module(library(http/html_head)).
-:- use_module(library(http/html_write)).
 :- use_module(library(with_no_x)).
 
 :- use_module(library(with_thread_local)).
-
-
 :- use_module(library(predicate_streams)).
-:- use_module(library(pfc_lib)).
 :- use_module(library(butterfly)).
 
 
+:- thread_local(t_l:no_cycstrings/0).
+:- asserta(t_l:no_cycstrings).
 
-:- set_defaultAssertMt(xlisting_web).
 /*
 :- include(library('pfc2.0'/'mpred_header.pi')).
 :-
@@ -231,10 +224,13 @@
 %:- endif.
 
 :- thread_local(t_l:print_mode/1).
+:- use_module(cliopatria('applications/help/load')).
+% Load ClioPatria itself.  Better keep this line.
+:- use_module(cliopatria(cliopatria)).
 
-:- kb_shared(param_default_value/2).
+:- kb_global(param_default_value/2).
 
- :- meta_predicate 
+:- meta_predicate 
         edit1term(*),
         handler_logicmoo_cyclone(+),
         must_run(*),
@@ -249,7 +245,7 @@
 :- (multifile http:location/3, http_dispatch:handler/4, http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1, baseKB:shared_hide_data/1, system:'$init_goal'/3, user:file_search_path/2).
 :- (module_transparent edit1term/1, must_run/1, if_html/2, return_to_pos/1, show_edit_term/3, show_edit_term0/3, show_edit_term1/3, with_search_filters/1).
 :- (volatile http_log:log_stream/2, http_session:session_data/2, http_session:urandom_handle/1).
-:- export((current_form_var0/1, get_http_session0/1,  is_context0/1, make_quotable_0/2, pp_i2tml_0/1, pp_i2tml_1/1, put_string0/1, put_string0/2, sanity_test_000/0, show_edit_term0/3, show_edit_term1/3, show_select1/2, show_select2/3)).
+:- export((current_form_var0/1, get_http_session0/1,  is_context0/1, make_quotable_0/2, pp_i2tml_0/1, pp_i2tml_1/1, sanity_test_000/0, show_edit_term0/3, show_edit_term1/3, show_select1/2, show_select2/3)).
 :- multifile((lmcache:last_item_offered/1, http:location/3, http_dispatch:handler/4, http_session:session_data/2, http_session:urandom_handle/1,
    foobar/1, lmcache:last_http_request/1, lmcache:last_item_offered/1, system:'$init_goal'/3, user:file_search_path/2)).
 
@@ -314,7 +310,7 @@ ensure_sigma:- ensure_sigma(3020).
 
 
 
-:- portray_text(false).  % or Enable portray of strings
+% :- portray_text(false).  % or Enable portray of strings
 
 
 :- thread_local(t_l:omit_full_stop).
@@ -328,14 +324,17 @@ register_logicmoo_browser:-
   http_handler('/swish/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]),
   doc_collect(true).
 
-
+:- baseKB:multifile(baseKB:mtExact/1).
+:- baseKB:dynamic(baseKB:mtExact/1).
+:- baseKB:export(baseKB:mtExact/1).
+:- xlisting_web:import(baseKB:mtExact/1).
 
 %% location( ?ARG1, ?ARG2, ?ARG3) is det.
 %
 % Hook To [http:location/3] For Module Mpred_www.
 % Location.
 %
-http:location(pixmaps, root(pixmaps), []).
+:- assert_if_new(http:location(pixmapx, root(pixmapx), [])).
 
 
 
@@ -344,10 +343,10 @@ http:location(pixmaps, root(pixmaps), []).
 % Hook To [user:file_search_path/2] For Module Mpred_www.
 % File Search Path.
 %
-:- prolog_load_context(directory,Here),atom_concat(Here,'/pixmaps',NewDir),asserta((user:file_search_path(pixmaps,NewDir))).
-% user:file_search_path(pixmaps, logicmoo('mpred_online/pixmaps')).
+:- prolog_load_context(directory,Here),atom_concat(Here,'/pixmapx',NewDir),asserta((user:file_search_path(pixmapx,NewDir))).
+% user:file_search_path(pixmapx, logicmoo('mpred_online/pixmapx')).
 
-:- during_boot(http_handler(pixmaps(.), http_server_files:serve_files_in_directory(pixmaps), [prefix])).
+:- during_boot(http_handler(pixmapx(.), http_server_files:serve_files_in_directory(pixmapx), [prefix])).
 
 :- meta_predicate
 	handler_logicmoo_cyclone(+).
@@ -362,7 +361,7 @@ http:location(pixmaps, root(pixmaps), []).
 print_request([]).
 print_request([H|T]) :-
         H =.. [Name, Value],
-        format(user_error,'<tr><td>~w<td>~w~n', [Name, Value]),
+        bformat(user_error,'<tr><td>~w<td>~w~n', [Name, Value]),
         print_request(T).
 
 
@@ -389,7 +388,7 @@ make_quotable(String,SObj):-atomic(String),format(string(SUnq),'~w',[String]),ma
 make_quotable(String,SObj):-format(string(SUnq),'~q',[String]),make_quotable_0(SUnq,SObj),!.
 
 % 
-% <link rel="SHORTCUT ICON" href="/pixmaps/mini-logo.gif"><meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+% <link rel="SHORTCUT ICON" href="/pixmapx/mini-logo.gif"><meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
 
 % :- set_yes_debug.
 
@@ -505,11 +504,20 @@ reset_assertion_display:-
 %
 % Get Param Sess.
 %
-get_param_sess(N,V):- must_run(param_default_value(N,D)),!,get_param_sess(N,V,D),!.
+get_param_sess(N,V):- must_run(param_default_value(N,D);D=''),!,get_param_sess(N,V,D),!.
 
 :- dynamic(lmcache:last_http_request/1).
 :- volatile(lmcache:last_http_request/1).
+:- dynamic(lmcache:last_item_offered/1).
 :- volatile(lmcache:last_item_offered/1).
+
+%% lmcache:last_item_offered( ?ARG1) is det.
+%
+% Last Item Offered.
+%
+:- asserta(lmcache:last_item_offered(unknown)).
+
+
 
 
 
@@ -583,14 +591,15 @@ save_request_in_session(Request):-
 %
 handler_logicmoo_cyclone(_):- quietly(is_goog_bot),!,
   quietly((format('Content-type: text/html~n~n',[]),
-  format('<!DOCTYPE html><html><head></head><body><pre></pre></body></html>~n~n',[]),
+  bformat('<!DOCTYPE html><html><head></head><body><pre></pre></body></html>~n~n',[]),
   flush_output_safe)),!.
 handler_logicmoo_cyclone(Request):- quietly(is_goog_bot),!,
   quietly((format('Content-type: text/html~n~n',[]),
-  format('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),
+  bformat('<!DOCTYPE html><html><head></head><body><pre>~q</pre></body></html>~n~n',[Request]),
   flush_output_safe)),!.
 
 handler_logicmoo_cyclone(Request):-
+ wdmsg(handler_logicmoo_cyclone(Request)),
  ignore((
  %nodebugx
  ((
@@ -606,9 +615,7 @@ handler_logicmoo_cyclone(Request):-
 %    format('Content-type: text/html~n~n',[]),
    html_write:html_current_option(content_type(D)),
    format('Content-type: ~w~n~n', [D]),
-
-   format('<!DOCTYPE html>',[]),
-   flush_output_safe,
+   bformat('<!DOCTYPE html>',[]),flush_output_safe,
     must_run(save_request_in_session(Request)),
     % member(request_uri(URI),Request),
      member(path(PATH),Request),
@@ -630,7 +637,7 @@ write_begin_html(B,BASE,URI):-
   must_run((
       % sformat(BASE,'~w~@',[B,get_request_vars('_n_~w_v0_~w_vZ')]),
       BASE = B,
-      format('<html><head><style type="text/css">
+      bformat('<html><head><style type="text/css">
    element.style {
     position: relative;
     min-height: 100%;
@@ -648,34 +655,65 @@ body {
         []),            
       must_run((get_http_current_request(Request))),
       must_run(member(request_uri(URI),Request)->true;URI=''),
-      % ((URI\==''->format('<meta http-equiv="refresh" content="300;~w">',[URI]);true)),
-      % must_run((BASE\='' -> format('<base href="~w" target="_parent"/>',[BASE]);true)),
+      % ((URI\==''->bformat('<meta http-equiv="refresh" content="300;~w">',[URI]);true)),
+      % must_run((BASE\='' -> bformat('<base href="~w" target="_parent"/>',[BASE]);true)),
       ignore(URI=''),
       ignore(BASE=''),
-     format('<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>',[]),
-     format('<title>~w for ~w</title>
-
-<link rel="stylesheet" type="text/css" href="/css/cliopatria.css">
-<link rel="stylesheet" type="text/css" href="/css/menu.css">
-<script type="text/javascript" src="/js/jquery-2.1.3.min.js"></script>
-<script type="text/javascript" src="/js/cliopatria.js"></script>
-<link rel="stylesheet" type="text/css" href="/www/yui/2.7.0/build/autocomplete/assets/skins/sam/autocomplete.css">
-<script type="text/javascript" src="/www/yui/2.7.0/build/utilities/utilities.js"></script>
-<script type="text/javascript" src="/www/yui/2.7.0/build/datasource/datasource.js"></script>
-<script type="text/javascript" src="/www/yui/2.7.0/build/autocomplete/autocomplete.js"></script></head>',
+     bformat('<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>',[]),
+     html_head:output_html(html_requires(plain)),     
+     bformat('<title>~w for ~w</title>
+      <link rel="stylesheet" type="text/css" href="/css/cliopatria.css">
+      <link rel="stylesheet" type="text/css" href="/css/menu.css">
+      <script type="text/javascript" src="/js/jquery-2.1.3.min.js"></script>
+      <script type="text/javascript" src="/js/cliopatria.js"></script>
+      <link rel="stylesheet" type="text/css" href="/www/yui/2.7.0/build/autocomplete/assets/skins/sam/autocomplete.css">
+      <script type="text/javascript" src="/www/yui/2.7.0/build/utilities/utilities.js"></script>
+      <script type="text/javascript" src="/www/yui/2.7.0/build/datasource/datasource.js"></script>
+      <script type="text/javascript" src="/www/yui/2.7.0/build/autocomplete/autocomplete.js"></script></head>',
    [BASE,URI]),
-     format('<body class="yui-skin-sam">',[]),flush_output_safe)),!.
+     bformat('<body class="yui-skin-sam">',[]),flush_output_safe)),!,
+  with_output_to(string(SMenu),output_html(cp_menu:cp_menu)),
+  output_html(div([id('cp-menu'), class(menu)], SMenu)).     
 
    
+test_rok:- test_rok(test_rok).
 
+/*
+dasm:print_clause_plain(Term) :-
+        current_prolog_flag(color_term, Prolog_flag_Ret),
+        make_pretty(Term, Make_pretty_Ret),
+        setup_call_cleanup(set_prolog_flag(color_term, false),
+                           ( nl,
+                             lcolormsg1(Make_pretty_Ret)
+                           ),
+                           set_prolog_flag(color_term, Prolog_flag_Ret)).
+*/
 
+test_rok(W) :- handler_logicmoo_cyclone([path_info(search4term), protocol(http), peer(ip(127, 0, 0, 1)), 
+  In = user_input,
+  Out = user_put,
+  format(atom(S4T),'/logicmoo/search4term?find=~w',[W]),
+  pool(client('httpd@3020', http_dispatch, In, Out)),
+    input(In), method(get), request_uri(S4T),
+     path('/logicmoo/search4term'), search([find=W]), 
+     http_version(1-1), host('127.0.0.1'), port(3020), cache_control('max-age=0'), 
+     upgrade_insecure_requests('1'), user_agent('Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3393.4 Safari/537.36'),
+     accept([media(text/html, [], 1.0, []), media(application/'xhtml+xml', [], 1.0, []), 
+     media(image/webp, [], 1.0, []), media(image/apng, [], 1.0, []), media(application/xml, [], 0.9, []), 
+     media(_9672/_9674, [], 0.8, [])]), accept_encoding('gzip, deflate'), accept_language('en-US,en;q=0.9'), 
+     cookie(['PHPSESSID'=u265i7e611jval7odhrs316n07, '_ga'='GA1.2.854971883.1519291037', 
+     session='eyJjc3JmX3Rva2VuIjoiMGU3MzE1ZWUxMjVkZTNlZDNlZDg3ZDgyNWQ5ZmZiNjMxNjE4ODdjZiJ9.DYDY5A.so4fbyaXlbCXtzExefb_aYRjJ6g', 
+     io='DjFUY0jh0SbK64uLAAAM', lo_session_in='1', '_jsuid'='984133034', 
+     '__lotl'='http%3A%2F%2Flogicmoo.org%2Fdocs%2FA%2520Fuzzy%2520Belief-Desire-Intention%2520Model%2520for%2520Agent-Based%2520Image%2520Analysis%2520_%2520IntechOpen.html', 
+     euCookie='1', swipl_session='cc4e-bdf6-b3ff-9ffc.gitlab']), x_forwarded_for('10.0.0.122'), x_forwarded_host('logicmoo.org'),
+      x_forwarded_server('127.0.1.1'), connection('Keep-Alive')]),!.
 
 
 %% write_end_html is det.
 %
 % Write End HTML.
 %
-write_end_html:- flush_output_safe,format('</body></html>~n~n',[]),flush_output_safe,!.
+write_end_html:- flush_output_safe,bformat('</body></html>~n~n',[]),flush_output_safe,!.
 
 % logicmoo_html_needs_debug.
 
@@ -686,8 +724,8 @@ write_end_html:- flush_output_safe,format('</body></html>~n~n',[]),flush_output_
 %
 % Add Form Script.
 %
-add_form_script:-format("
-<script type=\"text/javascript\">
+add_form_script:-
+format("<script type=\"text/javascript\">
 $('form').submit(function() {
   $(this).find('input[type=checkbox]').each(function (i, el) {
     if(!el.checked) {
@@ -730,11 +768,7 @@ if (document.addEventListener)
     document.addEventListener('click', callback, false);
 else
     document.attachEvent('onclick', callback);
-
-
-
-</script>
-"
+</script>"
 ).
 
 
@@ -745,7 +779,7 @@ else
 %
 % Show Pcall Footer.
 %
-show_pcall_footer:- format('<hr><a href="http://prologmoo.com">LogicMOO/PrologMUD</a>',[]),!.
+show_pcall_footer:- bformat('<hr><a href="http://prologmoo.com">LogicMOO/PrologMUD</a>',[]),!.
 
 
 
@@ -777,108 +811,845 @@ cvt_param_to_term(In,Obj):-cvt_param_to_term(In,Obj,_Vs),!.
 cvt_param_to_term(Obj,Obj).
 
 
-:- file_begin(pfc).
-:- thread_local(t_l:no_cycstrings/0).
-:- asserta(t_l:no_cycstrings).
 
-%% param_default_value( ?ARG1, ?ARG2) is det.
+% :- (thread_property(ID,status(running)),ID=reloader30) -> true; thread_create(((repeat,sleep(30),mmake,fail)),_,[alias(reloader30),detached(true)]).
+% ===================================================
+% Pretty Print Formula
+% ===================================================
+
+
+%% write_atom_link( ?ARG1) is det.
 %
-% Param Default Value.
+% Write Atom Link.
 %
-==> combo_default_value(human_language,1,'EnglishLanguage').
+:- export(write_atom_link/1).
+write_atom_link(A):-must_run(write_atom_link(A,A)).
 
-:- kb_shared(combo_default_value/2).
 
-combo_default_value(N,_,V) ==> param_default_value(N,V).
-combo_default_value(Pred,Arity,_Value)==> {kb_shared(Pred/Arity)}.
 
-%% human_language( ?ARG1) is det.
+%% write_atom_link( ?ARG1, ?ARG2) is det.
 %
-% Human Language.
+% Write Atom Link.
+%
+:- export(write_atom_link/2).
+write_atom_link(L,N):-must_run((write_atom_link(atom(W),L,N),bformat('~w',[W]))),!.
+
+% pred_href(Name/Arity, Module, HREF) :-
+
+
+
+%% write_atom_link( ?ARG1, ?ARG2, ?ARG3) is det.
+%
+% Write Atom Link.
+%
+:- export(write_atom_link/3).
+write_atom_link(W,A/_,N):-atom(A),!,write_atom_link(W,A,N).
+write_atom_link(W,C,N):-compound(C),get_functor(C,F,A),!,write_atom_link(W,F/A,N).
+%write_atom_link(W,_,N):- thread_self_main,!,write_term_to_atom_one(W,N),!.
+write_atom_link(W,_,N):- must_run(nonvar(W)),\+ is_html_mode,write_term_to_atom_one(W,N),!.
+write_atom_link(W,A,N):- sanity(nonvar(W)),
+ catch((format(atom(AQ),'~q',[A]),url_encode(AQ,URL),
+   format(W,'<a href="?find=~w">~w</a>',[URL,N])),_,write_term_to_atom_one(W,N)).
+
+
+
+
+%% write_term_to_atom_one( :TermARG1, ?ARG2) is det.
+%
+% Write Term Converted To Atom One.
+%
+write_term_to_atom_one(atom(A),Term):-format(atom(A),'~q',[Term]).
+
+/*
+
+
+%   File   : WRITE.PL
+%   Author : Richard A. O'Keefe.
+%   Updated: 22 October 1984
+%   Purpose: Portable definition of write/1 and friends.
+
+:- public
+	portable_display/1,
+	portable_listing/0,
+	portable_listing/1,
+	portable_print/1,
+	portable_write/1,
+	portable_writeq/1,
+	rok_portray_clause/1.
+
+:- meta_predicate
+	classify_name(+, -),
+	classify_alpha_tail(+),
+	classify_other_tail(+),
+	'functor spec'(+, -, -, -),
+	'list clauses'(+, +, +, +),
+	'list magic'(+, +),
+	'list magic'(+, +, +),
+	'list magic'(+, +, +, +),
+	maybe_paren(+, +, +, +, -),
+	maybe_space(+, +),
+	rok_portray_clause(+),
+	put_string(+),
+	put_string(+, +),
+	write_args(+, +, +, +, +),
+	write_atom(+, +, +, -),
+	write_oper(+, +, +, +, -),
+	write_out(+, +, +, +, -),
+	write_out(+, +, +, +, +, +, -),
+	write_tail(+, +),
+	write_VAR(+, +, +, -),
+	write_variable(?).
+*/
+     
+
+/*  WARNING!
+    This file was written to assist portability and to help people
+    get a decent set of output routines off the ground fast.  It is
+    not particularly efficient.  Information about atom names and
+    properties should be precomputed and fetched as directly as
+    possible, and strings should not be created as lists!
+
+    The four output routines differ in the following respects:
+    [a] display doesn't use operator information or handle {X} or
+	[H|T] specially.  The others do.
+    [b] print calls portray/1 to give the user a chance to do
+	something different.  The others don't.
+    [c] writeq puts quotes around atoms that can't be read back.
+	The others don't.
+    Since they have such a lot in common, we just pass around a
+    single Style argument to say what to do.
+
+    In a Prolog which supports strings;
+	write(<string>) should just write the text of the string, this so
+	that write("Beware bandersnatch") can be used.  The other output
+	commands should quote the string.
+
+    listing(Preds) is supposed to write the predicates out so that they
+    can be read back in exactly as they are now, provided the operator
+    declarations haven't changed.  So it has to use writeq.  $VAR(X)
+    will write the atom X without quotes, this so that you can write
+    out a clause in a readable way by binding each input variable to
+    its name.
+*/
+
+
+
+
+
+%% portable_display( ?ARG1) is det.
+%
+% Portable Display.
+%
+portable_display(Term) :-
+	write_out(Term, display, 1200, punct, _).
+
+
+
+
+
+%% portable_print( ?ARG1) is det.
+%
+% Portable Print.
+%
+portable_print(Term) :-
+	write_out(Term, print, 1200, punct, _).
+
+
+
+
+
+%% portable_write( ?ARG1) is det.
+%
+% Portable Write.
+%
+portable_write(Term) :-
+	write_out(Term, write, 1200, punct, _).
+
+
+
+
+
+%% portable_writeq( ?ARG1) is det.
+%
+% Portable Writeq.
+%
+portable_writeq(Term) :-
+       write_out(Term, writeq, 1200, punct, _).
+
+
+
+%   maybe_paren(P, Prio, Char, Ci, Co)
+%   writes a parenthesis if the context demands it.
+
+
+
+
+%% maybe_paren( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
+%
+% Maybe Paren.
+%
+maybe_paren(P, Prio, Char, _, punct) :-
+	P > Prio,
+	!,
+	put(Char).
+maybe_paren(_, _, _, C, C).
+
+
+
+%   maybe_space(LeftContext, TypeOfToken)
+%   generates spaces as needed to ensure that two successive
+%   tokens won't run into each other.
+
+
+
+
+%% maybe_space( ?ARG1, ?ARG2) is det.
+%
+% Maybe Space.
+%
+maybe_space(punct, _) :- !.
+maybe_space(X, X) :- !,
+	put(32).
+maybe_space(quote, alpha) :- !,
+	put(32).
+maybe_space(_, _).
+
+
+
+
+%   write_variable(V)
+%   is system dependent.  This just uses whatever Prolog supplies.
+
+
+
+
+%% write_variable( ?ARG1) is det.
+%
+% Write Variable.
+%
+write_variable(V) :-
+	write(V).
+
+
+
+
+portray_or_print(Term):- catch(user:portray(Term),_,fail),!.
+portray_or_print(Term):- catch(print(Term),_,fail),!.
+
+%%   write_out(Term, Style, Priority, Ci, Co)
+%   writes out a Term in a given Style (display,write,writeq,print)
+%   in a context of priority Priority (that is, operators with
+%   greater priority have to be quoted), where the last token to be
+%   written was of type Ci, and reports that the last token it wrote
+%   was of type Co.
+
+
+write_out(Term, Style, Prio, Ci, Co):-
+ write_oout(Term, Style, Prio, Ci, Co).
+
+%% write_oout(Term, Style, Prio, Ci, Co) is det.
+%
+% Write Out.
+%
+write_oout(Term, _, _, Ci, alpha) :-
+	var(Term),
+	!,
+	maybe_space(Ci, alpha),
+	write_variable(Term).
+write_oout('$VAR'(N), Style, _, Ci, Co) :- !,
+	write_VAR(N, Style, Ci, Co).
+write_oout(N, _, _, Ci, alpha) :-
+	integer(N),
+	(   N < 0, maybe_space(Ci, other)
+	;   maybe_space(Ci, alpha)
+	),  !,
+	name(N, String),
+	put_string(String).
+write_oout(TermS, Style, Prio, Ci, Co) :- string(TermS),
+        term_to_atom(TermS,Term),!,write_oout(Term, Style, Prio, Ci, Co).
+write_oout(Term, print, _,  _, alpha) :-
+	% DMILES HSOULD BE portray/1
+        loop_check(portray_or_print(Term),writeq(Term)),
+        % print(Term),
+	!.
+write_oout(Atom, Style, Prio, _, punct) :-
+	atom(Atom),
+	current_op(P, _, Atom),
+	P > Prio,
+	!,
+	put(40),
+	(   Style = writeq, write_atom(Atom, Style, punct, _)
+	;   (name(Atom, String), put_string(String))
+	),  !,
+	put(41).
+write_oout(Atom, Style, _, Ci, Co) :-
+	atom(Atom),
+	!,
+	write_atom(Atom, Style, Ci, Co).
+write_oout(Term, display, _, Ci, punct) :- !,
+	functor(Term, Fsymbol, Arity),
+	write_atom(Fsymbol, display, Ci, _),
+	write_args(0, Arity, Term, 40, display).
+write_oout({Term}, Style, _, _, punct) :- !,
+	put(123),
+	write_oout(Term, Style, 1200, punct, _),
+	put(125).
+write_oout([Head|Tail], Style, _, _, punct) :- !,
+	put(91),
+	write_oout(Head, Style, 999, punct, _),
+	write_tail(Tail, Style).
+write_oout((A,B), Style, Prio, Ci, Co) :- !,
+	%  This clause stops writeq quoting commas.
+	maybe_paren(1000, Prio, 40, Ci, C1),
+	write_oout(A, Style, 999, C1, _),
+	put(44),
+	write_oout(B, Style, 1000, punct, C2),
+	maybe_paren(1000, Prio, 41, C2, Co).
+write_oout(Term, Style, Prio, Ci, Co) :-
+	functor(Term, F, N),
+	write_oout(N, F, Term, Style, Prio, Ci, Co).
+
+
+
+%% write_oout( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5, ?ARG6, ?ARG7) is det.
+%
+% Write Out.
+%
+write_oout(1, F, Term, Style, Prio, Ci, Co) :-
+	(   current_op(O, fx, F), P is O-1
+	;   current_op(O, fy, F), P = O
+	),  !,
+	maybe_paren(O, Prio, 40, Ci, C1),
+	write_atom(F, Style, C1, C2),
+	arg(1, Term, A),
+	write_oout(A, Style, P, C2, C3),
+	maybe_paren(O, Prio, 41, C3, Co).
+write_oout(1, F, Term, Style, Prio, Ci, Co) :-
+	(   current_op(O, xf, F), P is O-1
+	;   current_op(O, yf, F), P = O
+	),  !,
+	maybe_paren(O, Prio, 40, Ci, C1),
+	arg(1, Term, A),
+	write_oout(A, Style, P, C1, C2),
+	write_atom(F, Style, C2, C3),
+	maybe_paren(O, Prio, 41, C3, Co).
+write_oout(2, F, Term, Style, Prio, Ci, Co) :-
+	(   current_op(O, xfy, F), P is O-1, Q = O
+	;   current_op(O, xfx, F), P is O-1, Q = P
+	;   current_op(O, yfx, F), Q is O-1, P = O
+	),  !,
+	maybe_paren(O, Prio, 40, Ci, C1),
+	arg(1, Term, A),
+	write_oout(A, Style, P, C1, C2),
+	write_oper(F, O, Style, C2, C3),
+	arg(2, Term, B),
+	write_oout(B, Style, Q, C3, C4),
+	maybe_paren(O, Prio, 41, C4, Co).
+write_oout(N, F, Term, Style, _Prio, Ci, punct) :-
+	write_atom(F, Style, Ci, _),
+	write_args(0, N, Term, 40, Style).
+
+
+
+
+
+%% write_oper( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
+%
+% Write Oper.
+%
+write_oper(Op, Prio, Style, Ci, Co) :-
+	Prio < 700, !,
+	write_atom(Op, Style, Ci, Co).
+write_oper(Op, _, Style, _Ci, punct) :-
+	put(32),
+	write_atom(Op, Style, punct, _),
+	put(32).
+
+
+
+
+%% write_VAR( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
+%
+% Write Var.
+%
+write_VAR(A, _Style, _Ci, _Co) :- atom(A), !,write(A).
+write_VAR(N, writeq, _Ci, alpha):- writeq('$VAR'(N)),!.
+write_VAR(X, Style, Ci, punct) :-
+	write_atom('$VAR', Style, Ci, _),
+	write_args(0, 1, '$VAR'(X), 40, Style).
+
+
+
+
+
+%% write_atom( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
+%
+% Write Atom.
+%
+write_atom(('!'), _, _, punct) :- !,
+	put(33).
+write_atom((';'), _, _, punct) :- !,
+	put(59).
+write_atom([], _, _, punct) :- !,
+	put(91), put(93).
+write_atom({}, _, _, punct) :- !,
+	put(123), put(125).
+write_atom(A, write, _Ci, _Co):- !,write(A),!.
+write_atom(A, _Style, _Ci, _Co):- write_atom_link(A,A),!.
+write_atom(Atom, Style, Ci, Co) :-
+	name(Atom, String),
+	(   classify_name(String, Co),
+	    maybe_space(Ci, Co),
+	    put_string(String)
+	;   Style = writeq, Co = quote,
+	    maybe_space(Ci, Co),
+	    (put(39), put_string(String, 39),put(39))
+	;   Co = alpha,
+	    put_string(String)
+	),  !.
+
+
+
+%txt_to_codes(Text,Codes):- text_to_string(Text,Str),name(Str,Codes).
+
+%% put_string( ?ARG1) is det.
+%
+%   writes a list of character codes.
+%
+put_string(B):- txt_to_codes(B,C),put_string0(C).
+
+
+
+%% put_string0( :TermARG1) is det.
+%
+% Put String Primary Helper.
+%
+put_string0([]).
+put_string0([H|T]) :-
+	put(H),
+	put_string0(T).
+
+
+%%   put_string(S, Q)
+%   writes a quoted list of character codes, where the first
+%   quote has already been written.  Instances of Q in S are doubled.
+put_string(A,B):- is_html_mode,!,
+  with_output_to(atom(S),put_string2(A,B)),
+  url_iri(URL,S),bformat('<a href="?find=~w">~w</a>',[URL,S]).
+put_string(A,B):- put_string2(A,B).
+
+
+put_string2(A,B):- txt_to_codes(A,C),to_ascii_code(B,BC),put_string0(C,BC).
+to_ascii_code(B,BC):- (number(B)->BC=B;name(B,[BC|_])).
+
+% :-rtrace.
+
+
+
+%% put_string0( :TermARG1, ?ARG2) is det.
+%
+% Put String Primary Helper.
+%
+put_string0([], _) :- !. % put(Q).
+put_string0([Q|T], Q) :- !,
+	put(Q), put(Q),
+	put_string0(T, Q).
+put_string0([H|T], Q) :-
+	put(H),
+	put_string0(T, Q).
+
+
+%%   classify_name(String, Co)
+%   says whether a String is an alphabetic identifier starting
+%   with a lower case letter (Co=alpha) or a string of symbol characters
+%   like ++/=? (Co=other).  If it is neither of these, it fails.  That
+%   means that the name needs quoting.  The special atoms ! ; [] {} are
+%   handled directly in write_atom.  In a basic Prolog system with no
+%   way of changing the character classes this information can be
+%   calculated when an atom is created, andf just looked up.  This has to
+%   be as fast as you can make it.
+classify_name([H|T], alpha) :-
+	H >= 97, H =< 122,
+	!,
+	classify_alpha_tail(T).
+classify_name([H|T], other) :-
+	memberchk(H, "#$&=-~^\`@+*:<>./?"),
+	classify_other_tail(T).
+
+
+
+
+%% classify_alpha_tail( :TermARG1) is det.
+%
+% Classify Alpha Tail.
+%
+classify_alpha_tail([]).
+classify_alpha_tail([H|T]) :-
+	(  H >= 97, H =< 122
+	;  H >= 65, H =< 90
+	;  H >= 48, H =< 57
+	;  H =:= 95
+	), !,
+	classify_alpha_tail(T).
+
+
+
+
+%% classify_other_tail( :TermARG1) is det.
+%
+% Classify Other Tail.
+%
+classify_other_tail([]).
+classify_other_tail([H|T]) :-
+	memberchk(H, "#$&=-~^\`@+*:<>./?"),
+	classify_other_tail(T).
+
+
+
+%   write_args(DoneSoFar, Arity, Term, Separator, Style)
+%   writes the remaining arguments of a Term with Arity arguments
+%   all told in Style, given that DoneSoFar have already been written.
+%   Separator is 0'( initially and later 0', .
+
+
+
+
+%% write_args( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
+%
+% Write Arguments.
+%
+write_args(N, N, _, _, _) :- !,
+	put(41).
+write_args(I, N, Term, C, Style) :-
+	put(C),
+	J is I+1,
+	arg(J, Term, A),
+	write_oout(A, Style, 999, punct, _),
+	write_args(J, N, Term, 44, Style).
+
+
+
+%   write_tail(Tail, Style)
+%   writes the tail of a list of a given style.
+
+
+
+
+%% write_tail( :TermARG1, ?ARG2) is det.
+%
+% Write Tail.
+%
+write_tail(Var, _) :-			%  |var]
+	var(Var),
+	!,
+	put(124),
+	write_variable(Var),
+	put(93).
+write_tail([], _) :- !,			%  ]
+	put(93).
+write_tail([Head|Tail], Style) :- !,	%  ,Head tail
+	put(44),
+	write_oout(Head, Style, 999, punct, _),
+        
+	write_tail(Tail, Style).
+write_tail(Other, Style) :-		%  |junk]
+	put(124),
+	write_oout(Other, Style, 999, punct, _),
+	put(93).
+
+
+/*  The listing/0 and listing/1 commands are based on the Dec-10
+    commands, but the bformat they generate is based on the "pp" command.
+    The idea of rok_portray_clause/1 came from PDP-11 Prolog.
+
+    BUG: the arguments of goals are not separated by comma-space but by
+    just comma.  This should be fixed, but I haven't the time right not.
+    Run the output through COMMA.EM if you really care.
+
+    An irritating fact is that we can't guess reliably which clauses
+    were grammar rules, so we can't print them out in grammar rule form.
+
+    We need a proper pretty-printer that takes the line width into
+    acount, but it really isn't all that feasible in Dec-10 Prolog.
+    Perhaps we could use some ideas from NIL?
+*/
+
+
+
+
+%% portable_listing is det.
+%
+% Portable Listing.
+%
+portable_listing :-
+	current_predicate(_, M:Pred),
+        \+ predicate_property(M:Pred,imported_from(_)),
+        predicate_property(M:Pred,number_of_clauses(_)),        
+	nl,
+	forall(clause(M:Pred, Body),rok_portray_clause((M:Pred:-Body))),
+        fail.
+portable_listing.
+
+
+%   listing(PredSpecs)
+
+%   Takes a predicate specifier F/N, a partial specifier F, or a
+%   list of such things, and lists each current_predicate Pred
+%   matching one of these specifications.
+
+
+
+
+%% portable_listing( :TermARG1) is det.
+%
+% Portable Listing.
+%
+portable_listing(V) :-
+	var(V), !.       % ignore variables
+portable_listing([]) :- !.
+portable_listing([X|Rest]) :- !,
+	portable_listing(X),
+	portable_listing(Rest).
+portable_listing(X) :-
+	'functor spec'(X, Name, Low, High),
+	current_predicate(Name, Pred),
+	functor(Pred, _, N),
+	N >= Low, N =< High,
+	nl, 
+	clause(Pred, Body),
+	rok_portray_clause((Pred:-Body)),
+	fail.
+portable_listing(_).
+
+
+
+
+%% functor spec( ?ARG1, ?ARG2, :GoalARG3, :PRED255ARG4) is det.
+%
+% Functor Spec.
+%
+'functor spec'(Name/Low-High, Name, Low, High) :- !.
+'functor spec'(Name/Arity, Name, Arity, Arity) :- !.
+'functor spec'(Name, Name, 0, 255).
+
+
+
+
+%% rok_portray_clause( :TermARG1) is det.
+%
+% Rok Portray Clause.
 %
 
-human_language("AlbanianLanguage").
-human_language("ArabicLanguage").
-human_language("BasqueLanguage").
-human_language("CatalanLanguage").
-human_language("ChineseLanguage").
-human_language("DanishLanguage").
-human_language("EnglishLanguage"). 
-human_language("FarsiLanguage").
-human_language("FinnishLanguage").
-human_language("FrenchLanguage").
-human_language("GalicianLanguage").
-human_language("GermanLanguage").
-human_language("HebrewLanguage").
-human_language("IndonesianLanguage").
-human_language("ItalianLanguage").
-human_language("JapaneseLanguage").
-human_language("MalayLanguage").
-human_language("NorwegianBokmalLanguage").
-human_language("NorwegianNorskLanguage").
-human_language("PolishLanguage").
-human_language("PortugueseLanguage").
-human_language("SpanishLanguage").
-human_language("ThaiLanguage").
-human_language("de").
+rok_portray_clause(Var):- var(Var),writeq(Var).
+
+rok_portray_clause(I):- catch(make_pretty(I,O),_,I=O),block_format(rok_portray_clause1(O)).
+
+rok_portray_clause1( :-(Command)) :- 
+	(   Command = public(Body), Key = (public)
+	;   Command = mode(Body),   Key = (mode)
+	;   Command = type(Body),   Key = (type)
+	;   Command = pred(Body),   Key = (pred)
+	;   Command = Body,	    Key = ''
+	),  !,
+	nl,
+	% nu mbervars(Body, 0, _),
+	\+ \+ 'list clauses'(Body, Key, 2, 8),!.
+rok_portray_clause1(M:(Pred:-Body)) :- !,
+     must_run((
+	% nu mbervars(Pred+Body, 0, _),
+	\+ \+ portable_writeq(M:Pred),
+	\+ \+ 'list clauses'(Body, 0, 2, 8))), !.
+rok_portray_clause1((Pred:-Body)) :- !,
+     must_run((
+	% nu mbervars(Pred+Body, 0, _),
+	\+ \+ portable_writeq(Pred),
+	\+ \+ 'list clauses'(Body, 0, 2, 8))), !.
+rok_portray_clause1(M:(Pred)) :- 
+	call(call,rok_portray_clause1((M:Pred:-true))).
+rok_portray_clause1((Pred)) :- !,
+	call(call,rok_portray_clause1((Pred:-true))).
 
 
-param_default_value(request_uri,'/logicmoo/').
-param_default_value(olang,'CLIF').
-param_default_value(find,'tHumanHead').
-param_default_value(N,V):-
-  member(N=V,[
-     webproc=edit1term,
-     'prover'='proverPTTP',
-     'apply'='find',
-     'term'='',
-     action_below=query,
-     'action_above'='query',
-     'context'='BaseKB',
-     'flang'='CLIF','find'='tHumanHead','xref'='Overlap','POS'='N',
-     'humanLang'='EnglishLanguage','olang'='CLIF','sExprs'='1',
-     'webDebug'='1','displayStart'='0','displayMax'='100000']).
-
-
-combo_default_value(logic_lang_name,2,'CLIF').
-%% logic_lang_name( ?ARG1, ?ARG2) is det.
+%% list clauses( :TermARG1, ?ARG2, ?ARG3, ?ARG4) is det.
 %
-% Logic Language Name.
+% List Clauses.
 %
-logic_lang_name('CLIF',"Common Logic (CLIF)").
-logic_lang_name('CycL',"CycL").
-logic_lang_name('Prolog',"Prolog").
-logic_lang_name('CGIF',"CG-Logic (CGIF)").
-logic_lang_name('SUO-KIF',"SUO-KIF").
-logic_lang_name('TPTP',"TPTP (fof/cnf)").
-logic_lang_name('OWL',"OWL").
+'list clauses'((A,B), L, R, D) :- !,
+	'list clauses'(A, L, 1, D), !,
+	'list clauses'(B, 1, R, D).
+'list clauses'(true, _L, 2, _D) :- !,
+	put(0'.
+        ), nl.
+        
+'list clauses'((A;B), L, R, D) :- !,
+	'list magic'(fail, L, D),
+	'list magic'((A;B), 0, 2, D),
+	'list magic'(R, '.
+'
+).
+
+'list clauses'((A->B), L, R, D) :- !,
+	'list clauses'(A, L, 5, D), !,
+	'list clauses'(B, 5, R, D).
+'list clauses'(Goal, L, R, D) :-
+	'list magic'(Goal, L, D),
+	portable_writeq(Goal),
+	'list magic'(R, '.
+'
+).
 
 
 
-combo_default_value(prover_name,2,'proverPTTP').
-%% prover_name( ?ARG1, ?ARG2) is det.
+
+%% list magic( ?ARG1, :PRED5ARG2, ?ARG3) is det.
 %
-% Prover Name.
+% List Magic.
 %
-prover_name(proverCyc,"CycL (LogicMOO)").
-prover_name(proverPFC,"PFC").
-prover_name(proverPTTP,"PTTP (LogicMOO)").
-prover_name(proverDOLCE,"DOLCE (LogicMOO)").
+'list magic'(!,    0, _D) :- !,
+	write(' :- ').
+'list magic'(!,    1, _D) :- !,
+	write(',  ').
+'list magic'(_Goal, 0, D) :- !,
+	write(' :- '),
+	nl, tab(D).
+'list magic'(_Goal, 1, D) :- !,
+	put(0',
+        ),
+	nl, tab(D).
+'list magic'(_Goal, 3, _D) :- !,
+	write('(   ').
+'list magic'(_Goal, 4, _D) :- !,
+	write(';   ').
+'list magic'(_Goal, 5, D) :- !,
+	write(' ->'),
+	nl, tab(D).
+'list magic'(_Goal, Key, D) :-
+	atom(Key),
+	write(':- '), write(Key),
+	nl, tab(D).
 
 
 
 
-combo_default_value(partOfSpeech,2,'N').
-%% partOfSpeech( ?ARG1, ?ARG2) is det.
+
+%% list magic( ?ARG1, ?ARG2) is det.
 %
-% Part Of Speech.
+% List Magic.
 %
-partOfSpeech("N","Noun").
-partOfSpeech("V","Verb").
-partOfSpeech("J","Adjective").
-partOfSpeech("Z","Adverb").
+'list magic'(2, C) :- !, write(C).
+'list magic'(_, _).
 
 
+
+
+
+%% list magic( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
+%
+% List Magic.
+%
+'list magic'((A;B), L, R, D) :- !,
+	'list magic'(A, L, 1, D), !,
+	'list magic'(B, 1, R, D).
+'list magic'(Conj,  L, R, D) :-
+	E is D+8,
+	M is L+3,
+	'list clauses'(Conj, M, 1, E),
+	nl, tab(D),
+	'list magic'(R, ')').
+
+
+/*	Test code for rok_portray_clause.
+	If it works, test_portray_clause(File) should write out the
+	contents of File in a more or less readable fashion.
+
+test_portray_clause(File) :-
+	see(File),
+	repeat,
+	    read(Clause, Vars),
+	    (   Clause = end_of_file
+	    ;   test_bind(Vars), rok_portray_clause(Clause), fail
+	    ),
+	!,
+	seen.
+
+test_bind([]) :- !.
+test_bind([X='$VAR'(X)|L]) :-
+	test_bind(L).
+:- public test_portray_clause/1.
+*/
+
+
+
+
+
+
+
+
+
+% '$messages':baseKB:my_portray(X):-fail,loop_check(baseKB:my_portray(X)).
+% user:portray(X):-loop_check(baseKB:my_portray(X)).
+/*
+:- dynamic user:portray/1.
+:- multifile user:portray/1.
+:- discontiguous my_portray/1. 
+:- export(baseKB:my_portray/1).
+baseKB:my_portray(A) :- var(A),!,fail,writeq(A).
+baseKB:my_portray(A) :-
+        atom(A),
+        sub_atom(A, 0, _, _, 'http://'), !,
+        (   style(B)
+        ->  true
+        ;   B=prefix:id
+        ),
+        portray_url(B, A).
+baseKB:my_portray(A) :-
+        atom(A),
+        atom_concat('__file://', B, A),
+        sub_atom(B, D, _, C, #),
+        sub_atom(B, _, C, 0, G),
+        sub_atom(B, 0, D, _, E),
+        file_base_name(E, F),
+        bformat('__~w#~w', [F, G]).
+baseKB:my_portray(A) :- atom(A),!,baseKB:write_atom_link(A,A).
+baseKB:my_portray(A) :- \+compound(A),fail.
+%baseKB:my_portray(P):- must_run((return_to_pos(rok_portray_clause(P)),!)).
+*/
+
+
+
+
+is_html_mode:- \+ get_print_mode(text).
+
+
+%% sanity_test_000 is det.
+%
+% Optional Sanity Checking test  Primary Helper Primary Helper Primary Helper.
+%
+sanity_test_000:- find_and_call((rok_portray_clause((
+pkif :-
+
+        [ implies,
+
+          [ isa(F, tPred),
+            isa(A, ftInt),
+            poss(KB, pos([arity(F, A)])),
+            poss(KB, arity(F, A))
+          ],
+          =>,
+
+          [ all([F]),
+
+            [ implies,
+              [isa(F, tPred), ex([A]), isa(A, ftInt), poss(KB, arity(F, A))],
+              =>,
+              [ex([A]), [isa(A, ftInt), arity(F, A)]]
+            ]
+          ]
+        ])))),nl,nl,nl.
+
+
+
+x123:- locally_tl(print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
 
 
 %% param_matches( ?ARG1, ?ARG2) is det.
@@ -896,8 +1667,8 @@ param_matches(A,B):-A=B,!.
 %
 % Show Select Extended Helper.
 %
-show_select2(Name,Pred,Options):-
-  
+show_select2(Name,Pred,Options):- block_format(show_select22(Name,Pred,Options)).
+show_select22(Name,Pred,Options):-  
     Call=..[Pred,ID,Value],
     must_run(param_default_value(Name,D); param_default_value(Pred,D)),!,
     get_param_sess(Name,UValue,D),
@@ -910,13 +1681,12 @@ show_select2(Name,Pred,Options):-
 
 
 
-
-
 %% show_select1( ?ARG1, ?ARG2) is det.
 %
 % Show Select Secondary Helper.
 %
-show_select1(Name,Pred):-
+show_select1(Name,Pred):- block_format(show_select11(Name,Pred)).
+show_select11(Name,Pred):-
  Call=..[Pred,Value],
  ( param_default_value(Name,D); param_default_value(Pred,D)),!,
  format('<select name="~w">',[Name]),
@@ -961,6 +1731,9 @@ search4term:- must_run((
 %
 % Edit1term.
 %
+
+edit1term:- get_param_req(xref,'Overlap'),!,search4term.
+
 edit1term:-  
   get_param_req('ASK','ASK'),!,
   www_main_error_to_out(
@@ -1052,29 +1825,30 @@ ensure_guitracer_x:-
 do_guitracer:- ensure_guitracer_x, guitracer,dtrace.
 
 output_telnet_console(Port):- HttpPort is Port +100,
-  sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="300" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
+  sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="600" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
   write_html(HTML).
 
 
 output_html(Var):- var(Var),!,term_to_atom(Var,Atom),output_html(pre([Atom])).
-output_html(HTML):- atomic(HTML),!,write_html(HTML).
-output_html(html(HTML)):- nonvar(HTML),!,output_html(HTML).
-%output_html(HTML):- is_list(HTML),send_tokens(HTML).
-output_html(HTML):- phrase(html(HTML), Tokens),send_tokens(Tokens).
+%output_html(html(HTML)):- !,output_html(HTML). %output_html(HTML):- atomic(HTML),!,write_html(HTML). %output_html(HTML):- is_list(HTML),send_tokens(HTML).
+output_html(HTML):- phrase(html(HTML), Tokens,[]),!,send_tokens(Tokens).
 
-send_tokens(Tokens):- with_output_to(string(HTMLString), html_write:print_html(Tokens)),write_html(HTMLString).
+remove_if_last(Tokens,TokensRight,TokensLeft):-append(TokensLeft,TokensRight,Tokens),!.
+remove_if_last(TokensRightLeft,_,TokensRightLeft).
+
+send_tokens(['<',html,'>'|Tokens]):-!,remove_if_last(Tokens,['</',html,'>'],TokensLeft),send_tokens_1(TokensLeft).
+send_tokens(Tokens):- send_tokens_1(Tokens).
+send_tokens_1([nl(1)|Tokens]):-!,remove_if_last(Tokens,[nl(1)],TokensLeft),send_tokens(TokensLeft).
+send_tokens_1(Tokens):- with_output_to(string(HTMLString), html_write:print_html(Tokens)),write_html(HTMLString).
 
 %write_html(HTMLString):- ((pengines:pengine_self(_) -> pengines:pengine_output(HTMLString) ;write(HTMLString))),!.
-write_html(HTMLString):- (nb_current('$in_swish',t) -> pengines:pengine_output(HTMLString) ;write(HTMLString)).
+write_html(HTMLString):- (nb_current('$in_swish',t) -> pengines:pengine_output(HTMLString) ; bformat(HTMLString)).
 
 %write_html(HTML):- phrase(html(HTML), Tokens), html_write:print_html(Out, Tokens))).
 % output_html(html([div([id('cp-menu'), class(menu)], cp_skin: cp_logo_and_menu)]))
-
-show_map_legend:- write_html('<table border=0 cellpadding=5 bgcolor="#000000">
-<tr><td>
-<pre>
- <div style="background-color:#ddd;float:left">
-  <code><font size=2 face="Courier New, FixedSys, Lucida Console, Courier New, Courier"><font color="#0">
+show_map_legend :- write_html(
+'<table border=0 cellpadding=5 bgcolor="#000000"><tr><td>
+<pre><div style="background-color:#000000;float:left"><code><font size=2 face="Courier New, FixedSys, Lucida Console, Courier New, Courier"><font color="#0">
 </font><font color="#C0C0C0">The map key is:
 
         </font><font color="#FF00FF">#</font><font color="#C0C0C0">  - You                         --- - North/south wall
@@ -1085,15 +1859,9 @@ show_map_legend:- write_html('<table border=0 cellpadding=5 bgcolor="#000000">
              Anger cast)                  </font><font color="#808000">&gt;</font><font color="#C0C0C0">  - Up exit (closed)
         </font><font color="#00FF00">!</font><font color="#C0C0C0">  - Unkillable Mob               &lt;  - Down exit
         </font><font color="#00FF00">$</font><font color="#C0C0C0">  - Shopkeeper                   </font><font color="#808000">&lt;</font><font color="#C0C0C0">  - Down exit (closed)
-
-
-</font><font color="#FFFFFF"><span style="color: #FFFFFF; background: #000080">[ </span></font><font color="#FFFF00"><span style="color: #FFFF00; background: #000080">Paging</span></font><font color="#FFFFFF"><span style="color: #FFFFFF; background: #000080"> : (Enter), (T)op, (Q)uit, (B)ack, (R)efresh, (L)ast, (A)ll ]</span></font><font color="#C0C0C0">: 
-
-
        </font><font color="#00FFFF">[</font><font color="#FFFFFF">?</font><font color="#00FFFF">]</font><font color="#C0C0C0"> - Area exit                    </font><font color="#800000">#</font><font color="#C0C0C0">  - PK-flagged room             
        </font><font color="#00FF00">[</font><font color="#FFFFFF">?</font><font color="#00FF00">]</font><font color="#C0C0C0"> - Clan public hall exit        </font><font color="#FF0000">D</font><font color="#C0C0C0">  - Donation room
 
-        
 Other characters on the map represent the terrain of the local area. Some 
 of the major terrains are:
 
@@ -1110,8 +1878,6 @@ of the major terrains are:
 
 Other terrain types not listed here are for aesthetic purposes only, such
 as </font><font color="#008080">[ ]</font><font color="#C0C0C0"> for temples, </font><font color="#FFFF00">* *</font><font color="#C0C0C0"> for shops, etc.
-
-See the related helps listed above for more configuration options with the
 </font></font></code></div></pre></td></tr></table>'),!.
 
 
@@ -1119,21 +1885,19 @@ See the related helps listed above for more configuration options with the
 %
 % Show Edit Term Secondary Helper.
 %
-show_edit_term1(Call,String,(P=>Q)):-!,show_edit_term1(Call,String,(P;Q;(P=>Q))),!.
+show_edit_term1(Call,String,'=>'(P,Q)):-!,show_edit_term1(Call,String,(P;Q;'=>'(P,Q))),!.
 show_edit_term1(Call,String,SWord):- 
  write_begin_html('edit1term',_BASE,URL),!,
-   output_html(html_requires(plain)),
-   output_html(html([div([id('cp-menu'), class(menu)], cp_menu: cp_menu)])),
-   format('<br/><p>
+   bformat('<br/><p>
 <table width="1111" cellspacing="0" cellpadding="0" height="121" id="table4">
  <!-- MSTableType="nolayout" -->
 	<form action="edit1term">
       <!-- MSTableType="nolayout" -->
 		<tr>
-          <td align="left" valign="top" width="36" rowspan="2"><img src="/pixmaps/sigmaSymbol-gray.gif"></td>
+          <td align="left" valign="top" width="36" rowspan="2"><img src="/pixmapx/sigmaSymbol-gray.gif"></td>
           <td></td>
           <td align="left" valign="top" width="711" rowspan="2">
-          <img src="/pixmaps/logoText-gray.gif">&nbsp;&nbsp;Prover:&nbsp; ~@
+          <img src="/pixmapx/logoText-gray.gif">&nbsp;&nbsp;Prover:&nbsp; ~@
                    <table cellspacing="0" cellpadding="0" id="table5" width="658" height="97">
       <!-- MSTableType="nolayout" -->
 	<tr>
@@ -1146,7 +1910,7 @@ show_edit_term1(Call,String,SWord):-
              <br><b>Microthory</b><br>~@<br/><input type="submit" value="ASK" name="ASK"><input type="submit" value="TELL" name="TELL"><input type="submit" value="RETRACT" name="RETRACT">
              <br><b>Formal Language</b><br>~@</td>
       </tr>
-        <tr><td><img src="/pixmaps/1pixel.gif" height="3"></td>
+        <tr><td><img src="/pixmapx/1pixel.gif" height="3"></td>
       		<td></td>
 			<td></td>
 			<td height="3"></td>
@@ -1184,9 +1948,9 @@ show_edit_term1(Call,String,SWord):-
     show_select1('humanLang',human_language),
     URL,
     show_select2(olang,logic_lang_name,[])]),!,   
-    format('<pre>',[]),
+    bformat('<pre>',[]),
     on_x_debug(Call),!,
-    format('</pre>',[]),
+    bformat('</pre>',[]),
    write_end_html,!.
 
 
@@ -1196,7 +1960,7 @@ show_edit_term1(Call,String,SWord):-
 %
 % Show Iframe.
 %
-show_iframe(URL,Name,Value):- format('<iframe width="100%" height="800" frameborder="0" scrolling="yes" marginheight="0" marginwidth="0" allowtransparency=true id="main" name="main" style="width:100%;height:800" src="~w?~w= ~w"></iframe>',[URL,Name,Value]).
+show_iframe(URL,Name,Value):- bformat('<iframe width="100%" height="800" frameborder="0" scrolling="yes" marginheight="0" marginwidth="0" allowtransparency=true id="main" name="main" style="width:100%;height:800" src="~w?~w= ~w"></iframe>',[URL,Name,Value]).
 
 
 
@@ -1204,7 +1968,7 @@ show_iframe(URL,Name,Value):- format('<iframe width="100%" height="800" framebor
 %
 % Show Iframe.
 %
-show_iframe(URL):- format('<iframe width="100%" height="800" frameborder="0" scrolling="yes" marginheight="0" marginwidth="0" allowtransparency=true id="main" name="main" style="width:100%;height:800" src="search4term?find= ~w"></iframe>',[URL]).
+show_iframe(URL):- bformat('<iframe width="100%" height="800" frameborder="0" scrolling="yes" marginheight="0" marginwidth="0" allowtransparency=true id="main" name="main" style="width:100%;height:800" src="search4term?find= ~w"></iframe>',[URL]).
   
 
 
@@ -1223,7 +1987,7 @@ show_search_filtersTop(BR):- write(BR).
 % Show Search Filters.
 %
 show_search_filters(BR):- 
-   forall(search_filter_name_comment(N,C,_),session_checkbox(N,C,BR)).
+   forall(no_repeats(N=C,search_filter_name_comment(N,C,_)),session_checkbox(N,C,BR)).
 
 
 
@@ -1265,27 +2029,516 @@ current_form_var0(N):- param_default_value(N,_).
 %
 is_goog_bot:- get_http_current_request(B),member(user_agent(UA),B),!,atom_contains(UA,'Googlebot').
  
-param_default_value(N,D):-search_filter_name_comment(N,_,D).
 
-
-
-%% search_filter_name_comment( ?ARG1, ?ARG2, ?ARG3) is det.
+%% pp_now is det.
 %
-% Search Filter Name Comment.
+% Pretty Print Now.
 %
-search_filter_name_comment(hideMeta,'Hide Meta/BookKeeping','1').
-search_filter_name_comment(hideSystem,'Skip System','0').
-search_filter_name_comment(hideTriggers,'Hide Triggers','1').
-search_filter_name_comment(skipLarge,'No Large','1').
-search_filter_name_comment(showHyperlink,'Hyperlink','1').
-search_filter_name_comment(showFilenames,'Filenames','0').
-search_filter_name_comment(showHUGE,'showHUGE','0').
-search_filter_name_comment(wholePreds,'Whole Preds','0').
-search_filter_name_comment(skipVarnames,'Skip Varnames','0').
-search_filter_name_comment(hideClauseInfo,'Skip ClauseInfo','1').
-search_filter_name_comment(hideXRef,'Skip XREF','1').
-search_filter_name_comment(showAll,'Show All','0').
-  
+pp_now.
+
+
+
+
+%% this_listing( :TermARG1) is det.
+%
+% This Listing.
+%
+this_listing(M:F/A):-functor(H,F,A),predicate_property(M:H,number_of_causes(_)),!, forall(clause(M:H,Body),pp_i2tml((M:H :- Body))).
+this_listing(M:F/A):-functor(H,F,A),predicate_property(H,number_of_causes(_)),!, forall(clause(H,Body),pp_i2tml((M:H :- Body))).
+this_listing(M:F/A):-listing(M:F/A),!.
+this_listing(MFA):-listing(MFA).
+
+:- thread_local(sortme_buffer/2).
+
+
+% i2tml_save(Obj,H):- \+ is_list(H),cyc:pterm_to_sterm(H,S),H\=@=S,!,i2tml_save(Obj,S).
+
+
+
+
+%% pp_i2tml_saved_done( ?ARG1) is det.
+%
+% Pretty Print I2tml Saved Done.
+%
+pp_i2tml_saved_done(_Obj):-pp_now,!,flush_output_safe.
+pp_i2tml_saved_done(Obj):-
+  findall(H,retract(sortme_buffer(Obj,H)),List),predsort(head_functor_sort,List,Set),
+  forall(member(S,Set),pp_i2tml(S)),!.
+
+
+
+
+%% find_cl_ref( :TermARG1, ?ARG2) is det.
+%
+% Find Clause Ref.
+%
+find_cl_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
+find_cl_ref(clause(_,_,Ref),Ref):-!.
+find_cl_ref(clause(H,B),Ref):- clause(H,B,Ref),!.
+find_cl_ref((H:-B),Ref):-!, clause(H,B,Ref),clause(HH,BB,Ref),H=@=HH,B=@=BB,!.
+find_cl_ref(H,Ref):- clause(H,true,Ref),clause(HH,true,Ref),H=@=HH,!.
+
+
+
+
+%% find_ref( :TermARG1, ?ARG2) is det.
+%
+% Find Ref.
+%
+find_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
+find_ref(H,Ref):- find_cl_ref(H,Ref),!.
+find_ref(This,Ref):- call(call,'$si$':'$was_imported_kb_content$'(A,CALL)),
+   arg(1,CALL,This),clause('$si$':'$was_imported_kb_content$'(A,CALL),true,Ref),!.
+find_ref(M:This,Ref):- atom(M),!,find_ref(This,Ref).
+
+
+
+
+%% head_functor_sort( ?ARG1, ?ARG2, ?ARG3) is det.
+%
+% Head Functor Sort.
+%
+head_functor_sort(Result,H1,H2):- (var(H1);var(H2)),compare(Result,H1,H2),!.
+head_functor_sort(Result,H1,H2):- once((get_functor(H1,F1,A1),get_functor(H2,F2,A2))),F1==F2,A1>0,A2>0,arg(1,H1,E1),arg(1,H2,E2),compare(Result,E1,E2),Result \== (=),!.
+head_functor_sort(Result,H1,H2):- once((get_functor(H1,F1,_),get_functor(H2,F2,_))),F1\==F2,compare(Result,F1,F2),Result \== (=),!.
+head_functor_sort(Result,H1,H2):-compare(Result,H1,H2),!.
+
+
+
+
+%% i2tml_hbr( ?ARG1, ?ARG2, ?ARG3) is det.
+%
+% I2tml Hbr.
+%
+i2tml_hbr(H,B,Ref):- nonvar(Ref),!,pp_i2tml_save_seen(clause(H,B,Ref)).
+i2tml_hbr(H,B,_):- B==true,!, pp_i2tml_save_seen(H).
+i2tml_hbr(H,B,_):- pp_i2tml_save_seen((H:-B)).
+
+
+
+
+%% pp_i2tml_save_seen( ?ARG1) is det.
+%
+% Pretty Print I2tml Save Seen.
+%
+pp_i2tml_save_seen(HB):- pp_now, !,must_run(pp_i2tml(HB)),!.
+pp_i2tml_save_seen(HB):- assertz_if_new(sortme_buffer(_Obj,HB)),!.
+
+
+:- thread_local(t_l:pp_i2tml_hook/1).
+
+:- thread_local(t_l:tl_hide_data/1).
+   
+:- thread_local(shown_subtype/1).
+:- thread_local(shown_clause/1).
+:- meta_predicate if_html(*,0).
+
+
+
+
+
+
+%% section_open( ?ARG1) is det.
+%
+% Section Open.
+%
+section_open(Type):-  once(shown_subtype(Type)->true;((is_html_mode->bformat('~n</pre><hr>~w<hr><pre>~n<font face="verdana,arial,sans-serif">',[Type]);(draw_line,format('% ~w~n~n',[Type]))),asserta(shown_subtype(Type)))),!.
+
+
+
+%% section_close( ?ARG1) is det.
+%
+% Section Close.
+%
+section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_html_mode->bformat('</font>\n</pre><hr/><pre>',[]);draw_line));true.
+
+:- export((action_menu_applied/3,
+            action_menu_item/2,
+            add_form_script/0,
+            register_logicmoo_browser/0,
+            as_ftVars/1,
+            call_for_terms/1,
+            classify_alpha_tail/1,
+            classify_name/2,
+            classify_other_tail/1,
+            current_form_var/1,
+            current_line_position/1,
+            current_line_position/2,
+            cvt_param_to_term/2,
+            cvt_param_to_term/3,
+            do_guitracer/0,
+            edit1term/0,
+            edit1term/1,
+            ensure_sigma/1,
+            %get_print_mode/1,               
+            ensure_sigma/0,
+            find_cl_ref/2,
+            find_ref/2,
+            fmtimg/2,
+            'functor spec'/4,
+            functor_to_color/2,
+            functor_to_color/4,
+            
+            get_http_current_request/1,
+            get_http_session/1,
+            get_nv_session/3,
+            get_param_req/2,
+            get_param_sess/2,
+            get_param_sess/3,
+            get_request_vars/1,
+            handler_logicmoo_cyclone/1,
+            head_functor_sort/3,
+            must_run/1,
+            human_language/1,
+            i2tml_hbr/3,
+            if_html/2,
+            indent_nbsp/1,
+            indent_nbsp/2,
+            indent_nl/0,
+            is_cgi_stream/0,
+            is_context/2,
+            is_goog_bot/0,
+            'list clauses'/4,
+            'list magic'/2,
+            'list magic'/3,
+            'list magic'/4,
+            logic_lang_name/2,
+            make_page_pretext_obj/1,
+            make_quotable/2,
+            make_session/1,
+            maybe_paren/5,
+            maybe_space/2,
+            member_open/2,
+            merge_key_vals/3,
+            name_the_var/5,
+            nl_same_pos/0,
+            numberlist_at/2,
+            object_sub_page/4,
+            % param_default_value/2,
+            param_matches/2,
+            parameter_names/2,
+            partOfSpeech/2,
+            portable_display/1,
+            portable_listing/0,
+            portable_listing/1,
+            portable_print/1,
+            portable_write/1,
+            portable_writeq/1,
+            pp_i2tml/1,
+            pp_i2tml_now/1,
+            pp_i2tml_save_seen/1,
+            pp_i2tml_saved_done/1,
+            pp_i2tml_v/1,
+            pp_item_html/2,
+            pp_item_html_if_in_range/2,
+            pp_item_html_now/2,
+            pp_now/0,
+            print_request/1,
+            prover_name/2,
+            put_string/1,
+            put_string/2,
+            reply_object_sub_page/1,
+            reset_assertion_display/0,
+            return_to_pos/1,
+            rok_portray_clause/1,
+            save_in_session/1,
+            save_in_session/2,
+            save_in_session/3,
+            save_request_in_session/1,
+            search4term/0,
+            search_filter_name_comment/3,
+            section_close/1,
+            section_open/1,
+            sensical_nonvar/1,
+            session_checkbox/3,
+            session_checked/1,
+            set_line_pos/1,
+            set_line_pos/2,
+            show_clause_ref/1,
+            show_clause_ref_now/1,
+            show_edit_term/3,
+               show_http_session/0,
+            show_iframe/1,
+            show_iframe/3,
+            show_pcall_footer/0,
+            show_search_filters/1,
+            show_search_filtersTop/1,
+            term_to_pretty_string/2,
+            this_listing/1,
+            test_tmw/0,
+            tovl/3,
+            url_decode/2,
+            url_decode_term/2,
+            url_encode/2,
+            url_encode_term/3,
+            with_search_filters/1,
+            with_search_filters0/1,
+            write_VAR/4,
+            write_args/5,
+            write_as_url_encoded/2,
+            write_atom/4,
+            write_atom_link/1,
+            write_atom_link/2,
+            write_atom_link/3,
+            write_begin_html/3,
+            write_end_html/0,
+            write_oper/5,
+            write_out/5,
+            write_oout/7,
+            write_tail/2,
+            write_term_to_atom_one/2,
+            write_variable/1,
+          
+          xlisting_web_file/0)).
+
+
+%% pp_item_html( ?ARG1, ?ARG2) is det.
+%
+% Pretty Print Item HTML.
+%
+pp_item_html(_Type,H):-var(H),!.
+pp_item_html(Type,done):-!,section_close(Type),!.
+pp_item_html(_,H):-shown_clause(H),!.
+pp_item_html(_,P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden(F/A);is_listing_hidden(F)))),!.
+
+pp_item_html(Type,H):- \+ is_html_mode, pp_item_html_now(Type,H),!.
+pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp_item_html_now(Type,H))).
+
+
+
+
+%% pp_item_html_now( ?ARG1, ?ARG2) is det.
+%
+% Pretty Print Item HTML Now.
+%
+pp_item_html_now(Type,H):-    
+   flag(matched_assertions,X,X+1),!,
+   pp_item_html_if_in_range(Type,H),!,
+   assert(shown_clause(H)),!.
+
+
+
+
+
+%% pp_item_html_if_in_range( ?ARG1, ?ARG2) is det.
+%
+% Pretty Print Item HTML If In Range.
+%
+pp_item_html_if_in_range(Type,H):- section_open(Type),!,pp_i2tml(H),!.
+
+:- thread_local(t_l:last_show_clause_ref/1).
+:- thread_local(t_l:current_clause_ref/1).
+
+
+
+
+
+%% show_clause_ref( ?ARG1) is det.
+%
+% Show Clause Ref.
+%
+show_clause_ref(Ref):- Ref == none,!.
+show_clause_ref(Ref):- t_l:last_show_clause_ref(Ref),!.
+show_clause_ref(Ref):- retractall(t_l:last_show_clause_ref(_)),asserta(t_l:last_show_clause_ref(Ref)),on_x_debug(show_clause_ref_now(Ref)),!.
+
+
+
+
+%% show_clause_ref_now( :GoalARG1) is det.
+%
+% Show Clause Ref Now.
+%
+show_clause_ref_now(V):-var(V),!.
+show_clause_ref_now(0):-!.
+show_clause_ref_now(_Ref):- is_listing_hidden(hideClauseRef),!.
+show_clause_ref_now(Ref):- is_listing_hidden(showFilenames), \+ clause_property(Ref,predicate(_)),format('~N~p~N',[clref(Ref)]),!.
+% write_html(div(class(src_formats),a(href(EditLink), edit)])).
+show_clause_ref_now(Ref):- is_listing_hidden(showFilenames),clause_property(Ref,file(File)),ignore(clause_property(Ref,line_count(Line))),
+  ignore(clause_property(Ref,module(Module))),
+    bformat('<a href="/swish/filesystem/~w#L~w">@file:~w:~w</a>(~w)~N',[File,Line,File,Line,Module]),
+    fail. 
+show_clause_ref_now(Ref):- clause_property(Ref,erased),
+  ignore(clause_property(Ref,module(Module))),
+    bformat('erased(~w) (~w)~N',[Ref,Module]),!.
+
+
+
+
+%% pp_i2tml( :TermARG1) is det.
+%
+% Pretty Print I2tml.
+%
+pp_i2tml(Done):-Done==done,!.
+pp_i2tml(T):-var(T),!,format('~w~n',[T]),!.
+pp_i2tml(T):-string(T),!,format('"~w"~n',[T]).
+pp_i2tml(clause(H,B,Ref)):- !, locally_tl(current_clause_ref(Ref),pp_i2tml_v((H:-B))).
+pp_i2tml(HB):- find_ref(HB,Ref),!, must_run(locally_tl(current_clause_ref(Ref),pp_i2tml_v((HB)))).
+pp_i2tml(HB):- locally_tl(current_clause_ref(none),must_run(pp_i2tml_v((HB)))).
+
+
+
+
+%% numberlist_at( ?ARG1, :TermARG2) is det.
+%
+% Numberlist When.
+%
+numberlist_at(_,[]).
+numberlist_at(_,[N|More]):- number(N),!,N2 is N+1,numberlist_at(N2,More),!.
+numberlist_at(Was,[N|More]):-var(N),  N is Was+1, N2 is N+1,  numberlist_at(N2,More),!.
+numberlist_at(Was,[_|More]):- N2 is Was+2, numberlist_at(N2,More),!.
+
+
+
+
+%get_clause_vars_for_print_here(HB,HB2):- catch(get_clause_vars_for_print(HB,HB2),_,fail),!.
+get_clause_vars_for_print_here(HB,HB2):- make_pretty(HB,HB2),!.
+
+%% pp_i2tml_v( ?ARG1) is det.
+%
+% Pretty Print I2tml V.
+%
+pp_i2tml_v(HB):- ignore(catch(( \+ \+ ((get_clause_vars_for_print_here(HB,HB2),pp_i2tml_0(HB2)))),_,true)),!.
+
+
+
+
+%% pp_i2tml_0( :TermARG1) is det.
+%
+% Pretty Print i2tml  Primary Helper.
+%
+pp_i2tml_0(Var):-var(Var),!.
+pp_i2tml_0(USER:HB):-USER==user,!,pp_i2tml_0(HB),!.
+pp_i2tml_0((H :- B)):-B==true,!,pp_i2tml_0((H)),!.
+pp_i2tml_0(((USER:H) :- B)):-USER==user,!,pp_i2tml_0((H:-B)),!.
+pp_i2tml_0((H:-B)):-B==true, !, pp_i2tml_0(H).
+
+pp_i2tml_0(P):- is_listing_hidden(P),!.
+pp_i2tml_0(was_chain_rule(H)):- pp_i2tml_0(H).
+pp_i2tml_0(M:(H)):-M==user, pp_i2tml_0(H).
+pp_i2tml_0(is_edited_clause(H,B,A)):- pp_i2tml_0(proplst([(clause)=H,before=B,after=A])).
+pp_i2tml_0(is_disabled_clause(H)):- pp_i2tml_0((disabled)=H).
+
+
+% pp_i2tml_0(FET):-fully_expand(change(assert,html_gen),FET,NEWFET),FET\=@=NEWFET,!,pp_i2tml_0(NEWFET).
+
+pp_i2tml_0(spft(P,F,T,W)):-!,
+   locally_tl(current_why_source(W),pp_i2tml_0(spft(P,F,T))).
+
+pp_i2tml_0(spft(P,U,U)):- nonvar(U),!, pp_i2tml_1(P:-asserted_by(U)).
+pp_i2tml_0(spft(P,F,T)):- atom(F),atom(T),!, pp_i2tml_1(P:-asserted_in(F:T)).
+pp_i2tml_0(spft(P,F,T)):- atom(T),!,  pp_i2tml_1(((P):-  T:'t-deduced',F)). 
+pp_i2tml_0(spft(P,F,T)):- atom(F),!,  pp_i2tml_1(((P):-  F:'f-deduced',T)). 
+pp_i2tml_0(spft(P,F,T)):- !, pp_i2tml_1((P:- ( 'deduced-from'=F,  (rule_why = T)))).
+pp_i2tml_0(nt(_,Trigger,Test,Body)) :- !, pp_i2tml_1(proplst(['n-trigger'=Trigger , bformat=Test  ,  (body = (Body))])).
+pp_i2tml_0(pt(_,Trigger,Body)):-      pp_i2tml_1(proplst(['p-trigger'=Trigger , ( body = Body)])).
+pp_i2tml_0(bt(_,Trigger,Body)):-      pp_i2tml_1(proplst(['b-trigger'=Trigger ,  ( body = Body)])).
+
+pp_i2tml_0(proplst([N=V|Val])):- is_list(Val),!, pp_i2tml_1(N:-([clause=V|Val])).
+pp_i2tml_0(proplst(Val)):-!, pp_i2tml_1(:-(proplst(Val))).
+
+
+pp_i2tml_0(M:H):- M==user,!,pp_i2tml_1(H).
+pp_i2tml_0((M:H:-B)):- M==user,!,pp_i2tml_1((H:-B)).
+pp_i2tml_0(HB):-pp_i2tml_1(HB).
+
+
+
+
+%% if_html( ?ARG1, :GoalARG2) is det.
+%
+% If HTML.
+%
+if_html(F,A):-is_html_mode,!,bformat(F,[A]).
+if_html(_,A):-A.
+
+
+
+
+%% pp_i2tml_1( ?ARG1) is det.
+%
+% Pretty Print i2tml  Secondary Helper.
+%
+pp_i2tml_1(H):- 
+ once(((lmcache:last_item_offered(Was);Was=foobar),get_functor(Was,F1,_A1),get_functor(H,F2,_A2),
+   retractall(lmcache:last_item_offered(Was)),asserta(lmcache:last_item_offered(H)),
+    ((F1 \== F2 -> if_html('~N<hr/>',true);true)))),flush_output_safe,fail.
+
+pp_i2tml_1(_H):- t_l:current_clause_ref(Ref),
+    if_html('<font size="1">~@</font>',show_clause_ref(Ref)),fail.
+
+pp_i2tml_1(H):- is_html_mode, 
+  term_to_pretty_string(H,ALT)->
+    term_to_pretty_string(ALT,URL)->
+   functor_to_color(H,FC)->fmtimg(FC,ALT)->
+    bformat('<input type="checkbox" name="assertion[]" value="~w">',[URL]),fail.
+
+pp_i2tml_1(H):- \+ \+ must_run(pp_i2tml_now(H)).
+
+
+
+
+%% pp_i2tml_now( ?ARG1) is det.
+%
+% Pretty Print I2tml Now.
+%
+pp_i2tml_now(C):- t_l:pp_i2tml_hook(C),!.
+pp_i2tml_now(C):- if_html('<font size="3">~@</font>~N',if_defined(rok_portray_clause(C),portray_clause(C))).
+
+
+
+%% functor_to_color( ?ARG1, ?ARG2) is det.
+%
+% Functor Converted To Color.
+%
+functor_to_color(wid(_,_,G),C):-!,functor_to_color(G,C).
+functor_to_color(G,C):-compound(G),functor(G,F,A),functor_to_color(G,F,A,C).
+functor_to_color(_G,green):-!.
+
+
+
+
+
+%% functor_to_color( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
+%
+% Functor Converted To Color.
+%
+functor_to_color(_G,isa,_,bug_btn_s).
+
+functor_to_color(_G,genls,1,'plus-green').
+functor_to_color(_G,arity,_,'white').
+functor_to_color(_G,argIsa,_,'white').
+functor_to_color(_G,argGenls,_,'white').
+
+functor_to_color(_,_,1,yellow).
+
+functor_to_color(G:-_,_,_,C):-nonvar(G),!,functor_to_color(G,C).
+
+
+
+functor_to_color(_,(<==>),_,'plus-purple').
+functor_to_color(_,(<-),_,purple).
+functor_to_color(_,(<=),_,'cyc-right-triangle-violet').
+functor_to_color(_,(==>),_,'cyc-right-triangle-violet').
+functor_to_color(_,(:-),_,red_diam).
+
+
+functor_to_color(_,-,_,red).
+functor_to_color(_,not,_,red).
+functor_to_color(_,~,_,red).
+functor_to_color(_,~,_,red).
+
+functor_to_color(_,(if),_,cy_menu).
+functor_to_color(_,(iff),_,cyan).
+functor_to_color(_,(all),_,cyan).
+functor_to_color(_,(exists),_,blue).
+
+functor_to_color(_,(mudEquals),_,pink).
+functor_to_color(_,(skolem),_,pink).
+functor_to_color(_,(wid),_,green_yellow).
+
+functor_to_color(G,_,_,'lightgrey'):-predicate_property(G,foreign).
+functor_to_color(G,_,_,'cyc-logo-3-t'):-predicate_property(G,built_in).
+
 
 
 
@@ -1305,8 +2558,8 @@ session_checked(Name):- get_param_sess(Name,V),V\=='0',V\==0,V\=="0".
 %
 session_checkbox(Name,Caption,BR):-
  (session_checked(Name)-> CHECKED='CHECKED';CHECKED=''),
- format('<font size="-3"><input type="checkbox" name="~w" value="1" ~w />~w</font>~w',[Name,CHECKED,Caption,BR]).
- % format('<font size="-3"><label><input type="checkbox" name="~w" value="1" ~w/>~w</label></font>~w',[Name,CHECKED,Caption,BR]).
+ bformat('<font size="-3"><input type="checkbox" name="~w" value="1" ~w />~w</font>~w',[Name,CHECKED,Caption,BR]).
+ % bformat('<font size="-3"><label><input type="checkbox" name="~w" value="1" ~w/>~w</label></font>~w',[Name,CHECKED,Caption,BR]).
 
 
 
@@ -1316,12 +2569,10 @@ session_checkbox(Name,Caption,BR):-
 % Action Menu Applied.
 %
 action_menu_applied(MenuName,ItemName,Where):-
-  format('<label>',[]),show_select2(MenuName,action_menu_item,[atom_subst('$item',ItemName)]),
-      format('&nbsp;~w&nbsp;&nbsp;<input type="submit" value="Now" name="Apply">',[Where]),
-      format('</label>',[]).
+  block_format(( bformat('<label>',[]),show_select2(MenuName,action_menu_item,[atom_subst('$item',ItemName)]),
+      bformat('&nbsp;~w&nbsp;&nbsp;<input type="submit" value="Now" name="Apply">',[Where]),
+      bformat('</label>',[]))).
 
-
-combol_default_value(is_context,2,'BaseKB').
 %% is_context( ?ARG1, ?ARG2) is det.
 %
 % If Is A Context.
@@ -1337,29 +2588,6 @@ is_context(MT,MT):-no_repeats(is_context0(MT)).
 is_context0(MT):- if_defined(exactlyAssertedEL_first(isa, MT, 'tMicrotheory',_,_),fail).
 is_context0(MT):- if_defined(isa(MT,'tMicrotheory'),fail).
 is_context0('BaseKB').                           
-
-
-
-combol_default_value(action_menu_item,2,'query').
-arg2Isa(action_menu_item,xtPrologString).
-%% action_menu_item( ?ARG1, ?ARG2) is det.
-%
-% Action Menu Item.
-%
-action_menu_item('Find',"Find $item").
-action_menu_item('Forward',"Forward Direction").
-action_menu_item('Backward',"Backward Direction").
-action_menu_item('query',"Query $item").
-action_menu_item('repropagate',"Repropagate $item (ReAssert)").
-action_menu_item('remove',"Remove $item(Unassert)").   
-action_menu_item('Code',"Assume Theorem (Disable $item)").
-action_menu_item('prologSingleValued',"Make $item Single Valued").
-action_menu_item('prologBuiltin',"Impl $item in Prolog").
-action_menu_item('prologPTTP',"Impl $item in PTTP").
-action_menu_item('prologDRA',"Impl $item in DRA").
-action_menu_item('prologPfc',"Impl $item in PFC").
-action_menu_item('Monotonic',"Treat $item Monotonic").
-action_menu_item('NonMonotonic',"Treat $item NonMonotonic").   
 
 
 
@@ -1379,13 +2607,12 @@ get_request_vars(Format):- ignore(Exclude=[term,find,session_data,webproc,user_a
 %
 % Hmust (list Version).
 %
-must_run(G):-is_list(G),!,maplist(must_run,G),!.
-must_run((G1,G2)):- !,must_run(G1),!,must_run(G2),!.
-% must_run([G1|G2]):- !,must_run(G1),!,must_run(G2),!.
 must_run(List):-  is_list(List),!,must_maplist(must_run,List),!.
+must_run((G1,G2)):- !,must_run(G1),!,must_run(G2),!.
+must_run([G1|G2]):- !,must_run(G1),!,must_run(G2),!.
 must_run(Goal):- flush_output_safe,
    (Goal
-    *-> flush_output_safe ; wdmsg(assertion_failed(fail, Goal))).
+    -> flush_output_safe ; wdmsg(assertion_failed(fail, Goal))).
 
 
 
@@ -1401,21 +2628,19 @@ call_for_terms(Call):-
       cvt_param_to_term(SObj,Obj),
         write_begin_html('search4term',Base,_),
         show_search_form(Obj,Base),
-        format('<pre>',[]),        
+        bformat('<pre>',[]),        
         locally_tl(print_mode(html),with_search_filters(catch(ignore(Call),E,dmsg(E)))),
-        format('</pre>',[]),
+        bformat('</pre>',[]),
         show_pcall_footer,
         write_end_html)),!.
 
 :- thread_local(t_l:tl_hide_data/1).
 
 show_search_form(Obj,Base):-
-   must_run(
-    (
-        format('<form action="search4term" target="_self"><font size="-3"> Apply ',[]),
-        action_menu_applied('action_below','Checked or Clicked',"&nbsp;below&nbsp;"),
-        format('&nbsp;&nbsp;&nbsp;find = <input id="find" type="text" name="find" value="~q">~@  Base = ~w</font> <a href="edit1term" target="_top">edit1term</a> <hr/></form>~n~@',
-            [Obj,show_search_filters('&nbsp;&nbsp;'),Base,add_form_script]))),  !.
+   block_format((
+        format('<form action="search4term" target="_self"><font size="-3">Apply: ~@',[action_menu_applied('action_below','Checked or Clicked',"&nbsp;below&nbsp;")]),
+        format('&nbsp;&nbsp;&nbsp;find: <input id="find" type="text" name="find" value="~q"> Base = ~w</font> <a href="edit1term" target="_top">edit1term</a><br/>~@ <hr/></form>~n~@',
+            [Obj,Base,show_search_filters('&nbsp;&nbsp;'),add_form_script]))),  !.
 
 
 %% with_search_filters( :GoalARG1) is det.
@@ -1557,16 +2782,16 @@ current_line_position(Out,LP):-stream_property(Out,position( Y)),stream_position
 
 
 
-%% tmw is det.
+%% test_tmw is det.
 %
 % Tmw.
 %
-tmw:- locally_tl(print_mode(html),
+test_tmw:- locally_tl(print_mode(html),
  (rok_portray_clause(a(LP)),
   rok_portray_clause((a(LP):-b([1,2,3,4]))),
   nl,nl,call_u(wid(_,_,KIF)),
-  KIF=(_=>_),nl,nl,print(KIF),listing(print_request/1))),!.
-tmw:- locally_tl(print_mode(html),(print((a(_LP):-b([1,2,3,4]))),nl,nl,wid(_,_,KIF),KIF=(_=>_),nl,nl,print(KIF),listing(print_request/1))),!.
+  KIF='=>'(_,_),nl,nl,print(KIF),listing(print_request/1))),!.
+test_tmw2:- locally_tl(print_mode(html),(print((a(_LP):-b([1,2,3,4]))),nl,nl,wid(_,_,KIF),KIF='=>'(_,_),nl,nl,print(KIF),listing(print_request/1))),!.
 
 
 
@@ -1723,11 +2948,11 @@ write_as_url_encoded(_Arg, D):- url_encode(D,U),!,writeq(U).
 %
 % Term Converted To Pretty String.
 %
-term_to_pretty_string(H,HS):-atomic(H),!,with_output_to(atom(HS),writeq(H)).
+term_to_pretty_string(H,HS):- \+ compound(H),!,with_output_to(string(HS),writeq(H)).
 term_to_pretty_string(H,HS):-
    % igno re(source_variables(X))->ignore(X=[])->
    % numb ervars(HC,0,_)->
-  with_output_to(atom(HS),portray_clause(H)).
+  with_output_to(string(HS),portray_clause(H)).
 
 
 
@@ -1739,7 +2964,7 @@ term_to_pretty_string(H,HS):-
 fmtimg(N,Alt):- is_html_mode,!,
  make_quotable(Alt,AltQ),
  url_encode(Alt,AltS),
- format('~N<a href="?webproc=edit1term&term=~w" target="_parent"><img src="/pixmaps/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
+ bformat('~N<a href="?webproc=edit1term&term=~w" target="_parent"><img src="/pixmapx/~w.gif" alt="~w" title="~w"><a>',[AltS,N,AltQ,AltQ]).
 fmtimg(_,_).
 
 
@@ -1750,7 +2975,7 @@ fmtimg(_,_).
 %
 % Indent Nbsp.
 %
-indent_nbsp(X):-is_html_mode,forall(between(0,X,_),format('&nbsp;')),!.
+indent_nbsp(X):-is_html_mode,forall(between(0,X,_),bformat('&nbsp;')),!.
 indent_nbsp(X):-forall(between(0,X,_),format('~t',[])),!.
 
 
@@ -1777,10 +3002,6 @@ indent_nbsp(X,Chars):-XX is X -1,!, indent_nbsp(XX,OutP),!,sformat(Chars,'~w   '
 
 
 
-:- multifile baseKB:shared_hide_data/1.
-:- kb_shared(baseKB:shared_hide_data/1).
-
-
 
 
 %% shared_hide_data( :PRED4ARG1) is det.
@@ -1788,6 +3009,11 @@ indent_nbsp(X,Chars):-XX is X -1,!, indent_nbsp(XX,OutP),!,sformat(Chars,'~w   '
 % Hook To [logicmoo_util_term_listing:shared_hide_data/1] For Module Mpred_www.
 % Shared Hide Data.
 %
+
+:- xlisting_web:import(xlisting:is_listing_hidden/1).
+
+:- multifile baseKB:shared_hide_data/1.
+:- kb_shared(baseKB:shared_hide_data/1).
 baseKB:shared_hide_data(M:F/A):-nonvar(M),!,baseKB:shared_hide_data(F/A).
 baseKB:shared_hide_data('$si$':'$was_imported_kb_content$'/2):- !,is_listing_hidden(hideMeta).
 baseKB:shared_hide_data(spft/3):- !,is_listing_hidden(hideTriggers).
@@ -1810,1382 +3036,40 @@ baseKB:shared_hide_data(session_data/_):- !.
 baseKB:shared_hide_data(mpred_prop/3):- !,is_listing_hidden(hideMeta).
 baseKB:shared_hide_data(last_item_offered/1):- !,is_listing_hidden(hideMeta).
 baseKB:shared_hide_data(P0):- strip_module(P0,_,P), compound(P),functor(P,F,A),F\== (/) , !,baseKB:shared_hide_data(F/A).
+baseKB:shared_hide_data((Pred)) :- fail, rok_portray_clause((Pred:-true)).
+
+:- fixup_exports.
+
+:- mpred_trace_exec.
+
+/*use_baseKB(M,I) :-
+  M:import(pfccore:pfcDefault/2),
+  I:import(pfccore:pfcDefault/2),
+ % pfc_umt:abox_pred_list(PREDS)-> must_maplist(kb_shared_local(M,I),PREDS),
+ forall(no_repeats(pfc_umt:pfcDatabaseTerm_DYN(F/A)),show_call(kb_shared_local(M,I,F/A))).
+:- use_baseKB(xlisting_web).
+*/
 
 
+%:- nb_setval(defaultAssertMt,xlisting_web).
 
-
-
-%% pp_now is det.
-%
-% Pretty Print Now.
-%
-pp_now.
-
-
-
-
-%% this_listing( :TermARG1) is det.
-%
-% This Listing.
-%
-this_listing(M:F/A):-functor(H,F,A),predicate_property(M:H,number_of_causes(_)),!, forall(clause(M:H,Body),pp_i2tml((M:H :- Body))).
-this_listing(M:F/A):-functor(H,F,A),predicate_property(H,number_of_causes(_)),!, forall(clause(H,Body),pp_i2tml((M:H :- Body))).
-this_listing(M:F/A):-listing(M:F/A),!.
-this_listing(MFA):-listing(MFA).
-
-:- thread_local(sortme_buffer/2).
-
-
-% i2tml_save(Obj,H):- \+ is_list(H),cyc:pterm_to_sterm(H,S),H\=@=S,!,i2tml_save(Obj,S).
-
-
-
-
-%% pp_i2tml_saved_done( ?ARG1) is det.
-%
-% Pretty Print I2tml Saved Done.
-%
-pp_i2tml_saved_done(_Obj):-pp_now,!,flush_output_safe.
-pp_i2tml_saved_done(Obj):-
-  findall(H,retract(sortme_buffer(Obj,H)),List),predsort(head_functor_sort,List,Set),
-  forall(member(S,Set),pp_i2tml(S)),!.
-
-
-
-
-%% find_cl_ref( :TermARG1, ?ARG2) is det.
-%
-% Find Clause Ref.
-%
-find_cl_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
-find_cl_ref(clause(_,_,Ref),Ref):-!.
-find_cl_ref(clause(H,B),Ref):- clause(H,B,Ref),!.
-find_cl_ref((H:-B),Ref):-!, clause(H,B,Ref),clause(HH,BB,Ref),H=@=HH,B=@=BB,!.
-find_cl_ref(H,Ref):- clause(H,true,Ref),clause(HH,true,Ref),H=@=HH,!.
-
-
-
-
-%% find_ref( :TermARG1, ?ARG2) is det.
-%
-% Find Ref.
-%
-find_ref(_,none):- t_l:tl_hide_data(hideClauseInfo),!.
-find_ref(H,Ref):- find_cl_ref(H,Ref),!.
-find_ref(This,Ref):- call(call,'$si$':'$was_imported_kb_content$'(A,CALL)),
-   arg(1,CALL,This),clause('$si$':'$was_imported_kb_content$'(A,CALL),true,Ref),!.
-find_ref(M:This,Ref):- atom(M),!,find_ref(This,Ref).
-
-
-
-
-%% head_functor_sort( ?ARG1, ?ARG2, ?ARG3) is det.
-%
-% Head Functor Sort.
-%
-head_functor_sort(Result,H1,H2):- (var(H1);var(H2)),compare(Result,H1,H2),!.
-head_functor_sort(Result,H1,H2):- once((get_functor(H1,F1,A1),get_functor(H2,F2,A2))),F1==F2,A1>0,A2>0,arg(1,H1,E1),arg(1,H2,E2),compare(Result,E1,E2),Result \== (=),!.
-head_functor_sort(Result,H1,H2):- once((get_functor(H1,F1,_),get_functor(H2,F2,_))),F1\==F2,compare(Result,F1,F2),Result \== (=),!.
-head_functor_sort(Result,H1,H2):-compare(Result,H1,H2),!.
-
-
-
-
-%% i2tml_hbr( ?ARG1, ?ARG2, ?ARG3) is det.
-%
-% I2tml Hbr.
-%
-i2tml_hbr(H,B,Ref):- nonvar(Ref),!,pp_i2tml_save_seen(clause(H,B,Ref)).
-i2tml_hbr(H,B,_):- B==true,!, pp_i2tml_save_seen(H).
-i2tml_hbr(H,B,_):- pp_i2tml_save_seen((H:-B)).
-
-
-
-
-%% pp_i2tml_save_seen( ?ARG1) is det.
-%
-% Pretty Print I2tml Save Seen.
-%
-pp_i2tml_save_seen(HB):- pp_now, !,must_run(pp_i2tml(HB)),!.
-pp_i2tml_save_seen(HB):- assertz_if_new(sortme_buffer(_Obj,HB)),!.
-
-
-:- thread_local(t_l:pp_i2tml_hook/1).
-
-:- thread_local(t_l:tl_hide_data/1).
-   
-:- thread_local(shown_subtype/1).
-:- thread_local(shown_clause/1).
-:- meta_predicate if_html(*,0).
-
-
-
-
-
-
-%% section_open( ?ARG1) is det.
-%
-% Section Open.
-%
-section_open(Type):-  once(shown_subtype(Type)->true;((is_html_mode->format('~n</pre><hr>~w<hr><pre>~n<font face="verdana,arial,sans-serif">',[Type]);(draw_line,format('% ~w~n~n',[Type]))),asserta(shown_subtype(Type)))),!.
-
-
-
-%% section_close( ?ARG1) is det.
-%
-% Section Close.
-%
-section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_html_mode->format('</font>\n</pre><hr/><pre>',[]);draw_line));true.
-
-:- export((action_menu_applied/3,
-            action_menu_item/2,
-            add_form_script/0,
-            register_logicmoo_browser/0,
-            as_ftVars/1,
-            call_for_terms/1,
-            classify_alpha_tail/1,
-            classify_name/2,
-            classify_other_tail/1,
-            current_form_var/1,
-            current_line_position/1,
-            current_line_position/2,
-            cvt_param_to_term/2,
-            cvt_param_to_term/3,
-            do_guitracer/0,
-            edit1term/0,
-            edit1term/1,
-            ensure_sigma/1,
-            %get_print_mode/1,               
-            ensure_sigma/0,
-            find_cl_ref/2,
-            find_ref/2,
-            fmtimg/2,
-            'functor spec'/4,
-            functor_to_color/2,
-            functor_to_color/4,
-            
-            get_http_current_request/1,
-            get_http_session/1,
-            get_nv_session/3,
-            get_param_req/2,
-            get_param_sess/2,
-            get_param_sess/3,
-            get_request_vars/1,
-            handler_logicmoo_cyclone/1,
-            head_functor_sort/3,
-            must_run/1,
-            human_language/1,
-            i2tml_hbr/3,
-            if_html/2,
-            indent_nbsp/1,
-            indent_nbsp/2,
-            indent_nl/0,
-            is_cgi_stream/0,
-            is_context/2,
-            is_goog_bot/0,
-            'list clauses'/4,
-            'list magic'/2,
-            'list magic'/3,
-            'list magic'/4,
-            logic_lang_name/2,
-            make_page_pretext_obj/1,
-            make_quotable/2,
-            make_session/1,
-            maybe_paren/5,
-            maybe_space/2,
-            member_open/2,
-            merge_key_vals/3,
-            name_the_var/5,
-            nl_same_pos/0,
-            numberlist_at/2,
-            object_sub_page/4,
-            % param_default_value/2,
-            param_matches/2,
-            parameter_names/2,
-            partOfSpeech/2,
-            portable_display/1,
-            portable_listing/0,
-            portable_listing/1,
-            portable_print/1,
-            portable_write/1,
-            portable_writeq/1,
-            pp_i2tml/1,
-            pp_i2tml_now/1,
-            pp_i2tml_save_seen/1,
-            pp_i2tml_saved_done/1,
-            pp_i2tml_v/1,
-            pp_item_html/2,
-            pp_item_html_if_in_range/2,
-            pp_item_html_now/2,
-            pp_now/0,
-            print_request/1,
-            prover_name/2,
-            put_string/1,
-            put_string/2,
-            reply_object_sub_page/1,
-            reset_assertion_display/0,
-            return_to_pos/1,
-            rok_portray_clause/1,
-            save_in_session/1,
-            save_in_session/2,
-            save_in_session/3,
-            save_request_in_session/1,
-            search4term/0,
-            search_filter_name_comment/3,
-            section_close/1,
-            section_open/1,
-            sensical_nonvar/1,
-            session_checkbox/3,
-            session_checked/1,
-            set_line_pos/1,
-            set_line_pos/2,
-            show_clause_ref/1,
-            show_clause_ref_now/1,
-            show_edit_term/3,
-               show_http_session/0,
-            show_iframe/1,
-            show_iframe/3,
-            show_pcall_footer/0,
-            show_search_filters/1,
-            show_search_filtersTop/1,
-            term_to_pretty_string/2,
-            this_listing/1,
-            tmw/0,
-            tovl/3,
-            url_decode/2,
-            url_decode_term/2,
-            url_encode/2,
-            url_encode_term/3,
-            with_search_filters/1,
-            with_search_filters0/1,
-            write_VAR/4,
-            write_args/5,
-            write_as_url_encoded/2,
-            write_atom/4,
-            write_atom_link/1,
-            write_atom_link/2,
-            write_atom_link/3,
-            write_begin_html/3,
-            write_end_html/0,
-            write_oper/5,
-            write_out/5,
-            write_out/7,
-            write_tail/2,
-            write_term_to_atom_one/2,
-            write_variable/1,
+:- ensure_loaded('xlisting_web.pfc').
           
-          xlisting_web_file/0)).
-
-
-%% pp_item_html( ?ARG1, ?ARG2) is det.
-%
-% Pretty Print Item HTML.
-%
-pp_item_html(_Type,H):-var(H),!.
-pp_item_html(Type,done):-!,section_close(Type),!.
-pp_item_html(_,H):-shown_clause(H),!.
-pp_item_html(_,P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden(F/A);is_listing_hidden(F)))),!.
-
-pp_item_html(Type,H):- \+ is_html_mode, pp_item_html_now(Type,H),!.
-pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp_item_html_now(Type,H))).
-
-:- dynamic(lmcache:last_item_offered/1).
-
-
-
-%% lmcache:last_item_offered( ?ARG1) is det.
-%
-% Last Item Offered.
-%
-lmcache:last_item_offered(unknonw).
-
-
-
-
-
-%% pp_item_html_now( ?ARG1, ?ARG2) is det.
-%
-% Pretty Print Item HTML Now.
-%
-pp_item_html_now(Type,H):-    
-   flag(matched_assertions,X,X+1),!,
-   pp_item_html_if_in_range(Type,H),!,
-   assert(shown_clause(H)),!.
-
-
-
-
-
-%% pp_item_html_if_in_range( ?ARG1, ?ARG2) is det.
-%
-% Pretty Print Item HTML If In Range.
-%
-pp_item_html_if_in_range(Type,H):- section_open(Type),!,pp_i2tml(H),!,nl.
-
-:- thread_local(t_l:last_show_clause_ref/1).
-:- thread_local(t_l:current_clause_ref/1).
-
-
-
-
-
-%% show_clause_ref( ?ARG1) is det.
-%
-% Show Clause Ref.
-%
-show_clause_ref(Ref):- Ref == none,!.
-show_clause_ref(Ref):- t_l:last_show_clause_ref(Ref),!.
-show_clause_ref(Ref):- retractall(t_l:last_show_clause_ref(_)),asserta(t_l:last_show_clause_ref(Ref)),on_x_debug(show_clause_ref_now(Ref)),!.
-
-
-
-
-%% show_clause_ref_now( :GoalARG1) is det.
-%
-% Show Clause Ref Now.
-%
-show_clause_ref_now(V):-var(V),!.
-show_clause_ref_now(0):-!.
-show_clause_ref_now(_Ref):- is_listing_hidden(hideClauseRef),!.
-show_clause_ref_now(Ref):- is_listing_hidden(showFilenames), \+ clause_property(Ref,predicate(_)),format('~N~p~N',[clref(Ref)]),!.
-% write_html(div(class(src_formats),a(href(EditLink), edit)])).
-show_clause_ref_now(Ref):- is_listing_hidden(showFilenames),clause_property(Ref,file(File)),ignore(clause_property(Ref,line_count(Line))),
-  ignore(clause_property(Ref,module(Module))),
-    format('<a href="/swish/filesystem/~w#L~w">@file:~w:~w</a>(~w)~N',[File,Line,File,Line,Module]),
-    fail. 
-show_clause_ref_now(Ref):- clause_property(Ref,erased),
-  ignore(clause_property(Ref,module(Module))),
-    format('erased(~w) (~w)~N',[Ref,Module]),!.
-
-
-
-
-%% pp_i2tml( :TermARG1) is det.
-%
-% Pretty Print I2tml.
-%
-pp_i2tml(Done):-Done==done,!.
-pp_i2tml(T):-var(T),!,format('~w',[T]),!.
-pp_i2tml(T):-string(T),!,format('"~w"',[T]).
-pp_i2tml(clause(H,B,Ref)):- !, locally_tl(current_clause_ref(Ref),pp_i2tml_v((H:-B))).
-pp_i2tml(HB):- find_ref(HB,Ref),!, must_run(locally_tl(current_clause_ref(Ref),pp_i2tml_v((HB)))).
-pp_i2tml(HB):- locally_tl(current_clause_ref(none),must_run(pp_i2tml_v((HB)))).
-
-
-
-
-%% numberlist_at( ?ARG1, :TermARG2) is det.
-%
-% Numberlist When.
-%
-numberlist_at(_,[]).
-numberlist_at(_,[N|More]):- number(N),!,N2 is N+1,numberlist_at(N2,More),!.
-numberlist_at(Was,[N|More]):-var(N),  N is Was+1, N2 is N+1,  numberlist_at(N2,More),!.
-numberlist_at(Was,[_|More]):- N2 is Was+2, numberlist_at(N2,More),!.
-
-
-
-
-
-%% pp_i2tml_v( ?ARG1) is det.
-%
-% Pretty Print I2tml V.
-%
-pp_i2tml_v(HB):- ignore(catch(( \+ \+ ((get_clause_vars_for_print(HB,HB2),pp_i2tml_0(HB2)))),_,true)),!.
-
-
-
-
-%% pp_i2tml_0( :TermARG1) is det.
-%
-% Pretty Print i2tml  Primary Helper.
-%
-pp_i2tml_0(Var):-var(Var),!.
-pp_i2tml_0(USER:HB):-USER==user,!,pp_i2tml_0(HB),!.
-pp_i2tml_0((H :- B)):-B==true,!,pp_i2tml_0((H)),!.
-pp_i2tml_0(((USER:H) :- B)):-USER==user,!,pp_i2tml_0((H:-B)),!.
-pp_i2tml_0((H:-B)):-B==true, !, pp_i2tml_0(H).
-
-pp_i2tml_0(P):- is_listing_hidden(P),!.
-pp_i2tml_0(was_chain_rule(H)):- pp_i2tml_0(H).
-pp_i2tml_0(M:(H)):-M==user, pp_i2tml_0(H).
-pp_i2tml_0(is_edited_clause(H,B,A)):- pp_i2tml_0(proplst([(clause)=H,before=B,after=A])).
-pp_i2tml_0(is_disabled_clause(H)):- pp_i2tml_0((disabled)=H).
-
-
-% pp_i2tml_0(FET):-fully_expand(change(assert,html_gen),FET,NEWFET),FET\=@=NEWFET,!,pp_i2tml_0(NEWFET).
-
-pp_i2tml_0(spft(P,F,T,W)):-!,
-   locally_tl(current_why_source(W),pp_i2tml_0(spft(P,F,T))).
-
-pp_i2tml_0(spft(P,U,U)):- nonvar(U),!, pp_i2tml_1(P:-asserted_by(U)).
-pp_i2tml_0(spft(P,F,T)):- atom(F),atom(T),!, pp_i2tml_1(P:-asserted_in(F:T)).
-pp_i2tml_0(spft(P,F,T)):- atom(T),!,  pp_i2tml_1(((P):-  T:'t-deduced',F)). 
-pp_i2tml_0(spft(P,F,T)):- atom(F),!,  pp_i2tml_1(((P):-  F:'f-deduced',T)). 
-pp_i2tml_0(spft(P,F,T)):- !, pp_i2tml_1((P:- ( 'deduced-from'=F,  (rule_why = T)))).
-pp_i2tml_0(nt(_,Trigger,Test,Body)) :- !, pp_i2tml_1(proplst(['n-trigger'=Trigger , format=Test  ,  (body = (Body))])).
-pp_i2tml_0(pt(_,Trigger,Body)):-      pp_i2tml_1(proplst(['p-trigger'=Trigger , ( body = Body)])).
-pp_i2tml_0(bt(_,Trigger,Body)):-      pp_i2tml_1(proplst(['b-trigger'=Trigger ,  ( body = Body)])).
-
-pp_i2tml_0(proplst([N=V|Val])):- is_list(Val),!, pp_i2tml_1(N:-([clause=V|Val])).
-pp_i2tml_0(proplst(Val)):-!, pp_i2tml_1(:-(proplst(Val))).
-
-
-pp_i2tml_0(M:H):- M==user,!,pp_i2tml_1(H).
-pp_i2tml_0((M:H:-B)):- M==user,!,pp_i2tml_1((H:-B)).
-pp_i2tml_0(HB):-pp_i2tml_1(HB).
-
-
-
-
-%% if_html( ?ARG1, :GoalARG2) is det.
-%
-% If HTML.
-%
-if_html(F,A):-is_html_mode,!,format(F,[A]).
-if_html(_,A):-A.
-
-
-
-
-%% pp_i2tml_1( ?ARG1) is det.
-%
-% Pretty Print i2tml  Secondary Helper.
-%
-pp_i2tml_1(H):- 
- once(((lmcache:last_item_offered(Was);Was=foobar),get_functor(Was,F1,_A1),get_functor(H,F2,_A2),
-   retractall(lmcache:last_item_offered(Was)),asserta(lmcache:last_item_offered(H)),
-    ((F1 \== F2 -> if_html('~N<hr/>',true);true)))),flush_output_safe,fail.
-
-pp_i2tml_1(_H):- t_l:current_clause_ref(Ref),
-    if_html('<font size="1">~@</font>',show_clause_ref(Ref)),fail.
-
-pp_i2tml_1(H):- is_html_mode, 
-  term_to_pretty_string(H,ALT)->
-   functor_to_color(H,FC)->fmtimg(FC,ALT)->
-    format('<input type="checkbox" name="assertion[]" value="~w">',[ALT]),fail.
-
-pp_i2tml_1(H):- \+ \+ pp_i2tml_now(H).
-
-
-
-
-%% pp_i2tml_now( ?ARG1) is det.
-%
-% Pretty Print I2tml Now.
-%
-pp_i2tml_now(C):- t_l:pp_i2tml_hook(C),!.
-pp_i2tml_now(C):- if_html('<font size="3">~@</font>~N',if_defined(rok_portray_clause(C),portray_clause(C))).
-
-
-
-
-
-
-
-%% functor_to_color( ?ARG1, ?ARG2) is det.
-%
-% Functor Converted To Color.
-%
-functor_to_color(wid(_,_,G),C):-!,functor_to_color(G,C).
-functor_to_color(G,C):-compound(G),functor(G,F,A),functor_to_color(G,F,A,C).
-functor_to_color(_G,green):-!.
-
-
-
-
-
-%% functor_to_color( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
-%
-% Functor Converted To Color.
-%
-functor_to_color(_G,isa,_,bug_btn_s).
-
-functor_to_color(_G,genls,1,'plus-green').
-functor_to_color(_G,arity,_,'white').
-functor_to_color(_G,argIsa,_,'white').
-functor_to_color(_G,argGenls,_,'white').
-
-functor_to_color(_,_,1,yellow).
-
-functor_to_color(G:-_,_,_,C):-nonvar(G),!,functor_to_color(G,C).
-
-
-
-functor_to_color(_,(<==>),_,'plus-purple').
-functor_to_color(_,(<-),_,purple).
-functor_to_color(_,(<=),_,'cyc-right-triangle-violet').
-functor_to_color(_,(==>),_,'cyc-right-triangle-violet').
-functor_to_color(_,(:-),_,red_diam).
-
-
-functor_to_color(_,-,_,red).
-functor_to_color(_,not,_,red).
-functor_to_color(_,~,_,red).
-functor_to_color(_,~,_,red).
-
-functor_to_color(_,(if),_,cy_menu).
-functor_to_color(_,(iff),_,cyan).
-functor_to_color(_,(all),_,cyan).
-functor_to_color(_,(exists),_,blue).
-
-functor_to_color(_,(mudEquals),_,pink).
-functor_to_color(_,(skolem),_,pink).
-functor_to_color(_,(wid),_,green_yellow).
-
-functor_to_color(G,_,_,'lightgrey'):-predicate_property(G,foreign).
-functor_to_color(G,_,_,'cyc-logo-3-t'):-predicate_property(G,built_in).
-
-% :- (thread_property(ID,status(running)),ID=reloader30) -> true; thread_create(((repeat,sleep(30),mmake,fail)),_,[alias(reloader30),detached(true)]).
-% ===================================================
-% Pretty Print Formula
-% ===================================================
-:- export(write_atom_link/1).
-
-
-
-%% write_atom_link( ?ARG1) is det.
-%
-% Write Atom Link.
-%
-write_atom_link(A):-must_run(write_atom_link(A,A)).
-:- export(write_atom_link/2).
-
-
-
-%% write_atom_link( ?ARG1, ?ARG2) is det.
-%
-% Write Atom Link.
-%
-write_atom_link(L,N):-must_run((write_atom_link(atom(W),L,N),format('~w',[W]))),!.
-
-% pred_href(Name/Arity, Module, HREF) :-
-
-
-
-%% write_atom_link( ?ARG1, ?ARG2, ?ARG3) is det.
-%
-% Write Atom Link.
-%
-write_atom_link(W,A/_,N):-atom(A),!,write_atom_link(W,A,N).
-write_atom_link(W,C,N):-compound(C),get_functor(C,F,A),!,write_atom_link(W,F/A,N).
-%write_atom_link(W,_,N):- thread_self_main,!,write_term_to_atom_one(W,N),!.
-write_atom_link(W,_,N):- must_run(nonvar(W)),\+ is_html_mode,write_term_to_atom_one(W,N),!.
-write_atom_link(W,A,N):- nonvar(W),catch((term_to_pretty_string(A,AQ),
-   url_encode(AQ,URL),
-   format(W,'<a href="?f=~w">~w</a>',[URL,AQ])),_,write_term_to_atom_one(W,N)).
-
-
-
-
-%% write_term_to_atom_one( :TermARG1, ?ARG2) is det.
-%
-% Write Term Converted To Atom One.
-%
-write_term_to_atom_one(atom(A),Term):-format(atom(A),'~q',[Term]).
-
-/*
-
-
-%   File   : WRITE.PL
-%   Author : Richard A. O'Keefe.
-%   Updated: 22 October 1984
-%   Purpose: Portable definition of write/1 and friends.
-
-:- public
-	portable_display/1,
-	portable_listing/0,
-	portable_listing/1,
-	portable_print/1,
-	portable_write/1,
-	portable_writeq/1,
-	rok_portray_clause/1.
-
-:- meta_predicate
-	classify_name(+, -),
-	classify_alpha_tail(+),
-	classify_other_tail(+),
-	'functor spec'(+, -, -, -),
-	'list clauses'(+, +, +, +),
-	'list magic'(+, +),
-	'list magic'(+, +, +),
-	'list magic'(+, +, +, +),
-	maybe_paren(+, +, +, +, -),
-	maybe_space(+, +),
-	rok_portray_clause(+),
-	put_string(+),
-	put_string(+, +),
-	write_args(+, +, +, +, +),
-	write_atom(+, +, +, -),
-	write_oper(+, +, +, +, -),
-	write_out(+, +, +, +, -),
-	write_out(+, +, +, +, +, +, -),
-	write_tail(+, +),
-	write_VAR(+, +, +, -),
-	write_variable(?).
-*/
-     
-
-/*  WARNING!
-    This file was written to assist portability and to help people
-    get a decent set of output routines off the ground fast.  It is
-    not particularly efficient.  Information about atom names and
-    properties should be precomputed and fetched as directly as
-    possible, and strings should not be created as lists!
-
-    The four output routines differ in the following respects:
-    [a] display doesn't use operator information or handle {X} or
-	[H|T] specially.  The others do.
-    [b] print calls portray/1 to give the user a chance to do
-	something different.  The others don't.
-    [c] writeq puts quotes around atoms that can't be read back.
-	The others don't.
-    Since they have such a lot in common, we just pass around a
-    single Style argument to say what to do.
-
-    In a Prolog which supports strings;
-	write(<string>) should just write the text of the string, this so
-	that write("Beware bandersnatch") can be used.  The other output
-	commands should quote the string.
-
-    listing(Preds) is supposed to write the predicates out so that they
-    can be read back in exactly as they are now, provided the operator
-    declarations haven't changed.  So it has to use writeq.  $VAR(X)
-    will write the atom X without quotes, this so that you can write
-    out a clause in a readable way by binding each input variable to
-    its name.
-*/
-
-
-
-
-
-%% portable_display( ?ARG1) is det.
-%
-% Portable Display.
-%
-portable_display(Term) :-
-	write_out(Term, display, 1200, punct, _).
-
-
-
-
-
-%% portable_print( ?ARG1) is det.
-%
-% Portable Print.
-%
-portable_print(Term) :-
-	write_out(Term, print, 1200, punct, _).
-
-
-
-
-
-%% portable_write( ?ARG1) is det.
-%
-% Portable Write.
-%
-portable_write(Term) :-
-	write_out(Term, write, 1200, punct, _).
-
-
-
-
-
-%% portable_writeq( ?ARG1) is det.
-%
-% Portable Writeq.
-%
-portable_writeq(Term) :-
-	write_out(Term, writeq, 1200, punct, _).
-
-
-
-%   maybe_paren(P, Prio, Char, Ci, Co)
-%   writes a parenthesis if the context demands it.
-
-
-
-
-%% maybe_paren( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
-%
-% Maybe Paren.
-%
-maybe_paren(P, Prio, Char, _, punct) :-
-	P > Prio,
-	!,
-	put(Char).
-maybe_paren(_, _, _, C, C).
-
-
-
-%   maybe_space(LeftContext, TypeOfToken)
-%   generates spaces as needed to ensure that two successive
-%   tokens won't run into each other.
-
-
-
-
-%% maybe_space( ?ARG1, ?ARG2) is det.
-%
-% Maybe Space.
-%
-maybe_space(punct, _) :- !.
-maybe_space(X, X) :- !,
-	put(32).
-maybe_space(quote, alpha) :- !,
-	put(32).
-maybe_space(_, _).
-
-
-
-%   put_string(S)
-%   writes a list of character codes.
-
-
-
-
-
-%% put_string( ?ARG1) is det.
-%
-% Put String.
-%
-put_string(B):-put_string0(B).
-
-
-
-%% put_string0( :TermARG1) is det.
-%
-% Put String Primary Helper.
-%
-put_string0([]).
-put_string0([H|T]) :-
-	put(H),
-	put_string0(T).
-
-
-%   put_string(S, Q)
-%   writes a quoted list of character codes, where the first
-%   quote has already been written.  Instances of Q in S are doubled.
-
-
-
-
-%% put_string( ?ARG1, ?ARG2) is det.
-%
-% Put String.
-%
-put_string(A,B):- is_html_mode,!,
-  with_output_to(atom(S),put_string0(A,B)),
-  url_iri(URL,S),format('<a href="?f= ~w">~w</a>',[URL,S]).
-
-put_string(A,B):- put_string0(A,B).
-
-% :-rtrace.
-
-
-
-%% put_string0( :TermARG1, ?ARG2) is det.
-%
-% Put String Primary Helper.
-%
-put_string0([], Q) :-
-	put(Q).
-put_string0([Q|T], Q) :- !,
-	put(Q), put(Q),
-	put_string0(T, Q).
-put_string0([H|T], Q) :-
-	put(H),
-	put_string0(T, Q).
-
-
-
-%   write_variable(V)
-%   is system dependent.  This just uses whatever Prolog supplies.
-
-
-
-
-%% write_variable( ?ARG1) is det.
-%
-% Write Variable.
-%
-write_variable(V) :-
-	write(V).
-
-
-
-%   write_out(Term, Style, Priority, Ci, Co)
-%   writes out a Term in a given Style (display,write,writeq,print)
-%   in a context of priority Priority (that is, operators with
-%   greater priority have to be quoted), where the last token to be
-%   written was of type Ci, and reports that the last token it wrote
-%   was of type Co.
-
-
-
-
-%% write_out( :TermARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
-%
-% Write Out.
-%
-write_out(Term, _, _, Ci, alpha) :-
-	var(Term),
-	!,
-	maybe_space(Ci, alpha),
-	write_variable(Term).
-write_out('$VAR'(N), Style, _, Ci, Co) :- !,
-	write_VAR(N, Style, Ci, Co).
-write_out(N, _, _, Ci, alpha) :-
-	integer(N),
-	(   N < 0, maybe_space(Ci, other)
-	;   maybe_space(Ci, alpha)
-	),  !,
-	name(N, String),
-	put_string(String).
-write_out(Term, print, _,  _, alpha) :-
-	% DMILES HSOULD BE portray(Term),
-        print(Term),
-	!.
-write_out(Atom, Style, Prio, _, punct) :-
-	atom(Atom),
-	current_op(P, _, Atom),
-	P > Prio,
-	!,
-	put(40),
-	(   Style = writeq, write_atom(Atom, Style, punct, _)
-	;   name(Atom, String), put_string(String)
-	),  !,
-	put(41).
-write_out(Atom, Style, _, Ci, Co) :-
-	atom(Atom),
-	!,
-	write_atom(Atom, Style, Ci, Co).
-write_out(Term, display, _, Ci, punct) :- !,
-	functor(Term, Fsymbol, Arity),
-	write_atom(Fsymbol, display, Ci, _),
-	write_args(0, Arity, Term, 40, display).
-write_out({Term}, Style, _, _, punct) :- !,
-	put(123),
-	write_out(Term, Style, 1200, punct, _),
-	put(125).
-write_out([Head|Tail], Style, _, _, punct) :- !,
-	put(91),
-	write_out(Head, Style, 999, punct, _),
-	write_tail(Tail, Style).
-write_out((A,B), Style, Prio, Ci, Co) :- !,
-	%  This clause stops writeq quoting commas.
-	maybe_paren(1000, Prio, 40, Ci, C1),
-	write_out(A, Style, 999, C1, _),
-	put(44),
-	write_out(B, Style, 1000, punct, C2),
-	maybe_paren(1000, Prio, 41, C2, Co).
-write_out(Term, Style, Prio, Ci, Co) :-
-	functor(Term, F, N),
-	write_out(N, F, Term, Style, Prio, Ci, Co).
-
-
-
-
-
-%% write_out( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5, ?ARG6, ?ARG7) is det.
-%
-% Write Out.
-%
-write_out(1, F, Term, Style, Prio, Ci, Co) :-
-	(   current_op(O, fx, F), P is O-1
-	;   current_op(O, fy, F), P = O
-	),  !,
-	maybe_paren(O, Prio, 40, Ci, C1),
-	write_atom(F, Style, C1, C2),
-	arg(1, Term, A),
-	write_out(A, Style, P, C2, C3),
-	maybe_paren(O, Prio, 41, C3, Co).
-write_out(1, F, Term, Style, Prio, Ci, Co) :-
-	(   current_op(O, xf, F), P is O-1
-	;   current_op(O, yf, F), P = O
-	),  !,
-	maybe_paren(O, Prio, 40, Ci, C1),
-	arg(1, Term, A),
-	write_out(A, Style, P, C1, C2),
-	write_atom(F, Style, C2, C3),
-	maybe_paren(O, Prio, 41, C3, Co).
-write_out(2, F, Term, Style, Prio, Ci, Co) :-
-	(   current_op(O, xfy, F), P is O-1, Q = O
-	;   current_op(O, xfx, F), P is O-1, Q = P
-	;   current_op(O, yfx, F), Q is O-1, P = O
-	),  !,
-	maybe_paren(O, Prio, 40, Ci, C1),
-	arg(1, Term, A),
-	write_out(A, Style, P, C1, C2),
-	write_oper(F, O, Style, C2, C3),
-	arg(2, Term, B),
-	write_out(B, Style, Q, C3, C4),
-	maybe_paren(O, Prio, 41, C4, Co).
-write_out(N, F, Term, Style, _Prio, Ci, punct) :-
-	write_atom(F, Style, Ci, _),
-	write_args(0, N, Term, 40, Style).
-
-
-
-
-
-%% write_oper( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
-%
-% Write Oper.
-%
-write_oper(Op, Prio, Style, Ci, Co) :-
-	Prio < 700, !,
-	write_atom(Op, Style, Ci, Co).
-write_oper(Op, _, Style, _Ci, punct) :-
-	put(32),
-	write_atom(Op, Style, punct, _),
-	put(32).
-
-
-
-
-%% write_VAR( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
-%
-% Write Var.
-%
-write_VAR(A, _Style, _Ci, _Co) :- atom(A), !,write(A).
-write_VAR(N, writeq, _Ci, alpha):- writeq('$VAR'(N)),!.
-write_VAR(X, Style, Ci, punct) :-
-	write_atom('$VAR', Style, Ci, _),
-	write_args(0, 1, '$VAR'(X), 40, Style).
-
-
-
-
-
-%% write_atom( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
-%
-% Write Atom.
-%
-write_atom(('!'), _, _, punct) :- !,
-	put(33).
-write_atom((';'), _, _, punct) :- !,
-	put(59).
-write_atom([], _, _, punct) :- !,
-	put(91), put(93).
-write_atom({}, _, _, punct) :- !,
-	put(123), put(125).
-write_atom(A, write, _Ci, _Co):- !,write(A),!.
-write_atom(A, _Style, _Ci, _Co):- write_atom_link(A,A),!.
-write_atom(Atom, Style, Ci, Co) :-
-	name(Atom, String),
-	(   classify_name(String, Co),
-	    maybe_space(Ci, Co),
-	    put_string(String)
-	;   Style = writeq, Co = quote,
-	    maybe_space(Ci, Co),
-	    put(39), put_string(String, 39)
-	;   Co = alpha,
-	    put_string(String)
-	),  !.
-
-%   classify_name(String, Co)
-%   says whether a String is an alphabetic identifier starting
-%   with a lower case letter (Co=alpha) or a string of symbol characters
-%   like ++/=? (Co=other).  If it is neither of these, it fails.  That
-%   means that the name needs quoting.  The special atoms ! ; [] {} are
-%   handled directly in write_atom.  In a basic Prolog system with no
-%   way of changing the character classes this information can be
-%   calculated when an atom is created, andf just looked up.  This has to
-%   be as fast as you can make it.
-
-
-
-
-%% classify_name( :TermARG1, ?ARG2) is det.
-%
-% Classify Name.
-%
-classify_name([H|T], alpha) :-
-	H >= 97, H =< 122,
-	!,
-	classify_alpha_tail(T).
-classify_name([H|T], other) :-
-	memberchk(H, "#$&=-~^\`@+*:<>./?"),
-	classify_other_tail(T).
-
-
-
-
-%% classify_alpha_tail( :TermARG1) is det.
-%
-% Classify Alpha Tail.
-%
-classify_alpha_tail([]).
-classify_alpha_tail([H|T]) :-
-	(  H >= 97, H =< 122
-	;  H >= 65, H =< 90
-	;  H >= 48, H =< 57
-	;  H =:= 95
-	), !,
-	classify_alpha_tail(T).
-
-
-
-
-%% classify_other_tail( :TermARG1) is det.
-%
-% Classify Other Tail.
-%
-classify_other_tail([]).
-classify_other_tail([H|T]) :-
-	memberchk(H, "#$&=-~^\`@+*:<>./?"),
-	classify_other_tail(T).
-
-
-
-%   write_args(DoneSoFar, Arity, Term, Separator, Style)
-%   writes the remaining arguments of a Term with Arity arguments
-%   all told in Style, given that DoneSoFar have already been written.
-%   Separator is 0'( initially and later 0', .
-
-
-
-
-%% write_args( ?ARG1, ?ARG2, ?ARG3, ?ARG4, ?ARG5) is det.
-%
-% Write Arguments.
-%
-write_args(N, N, _, _, _) :- !,
-	put(41).
-write_args(I, N, Term, C, Style) :-
-	put(C),
-	J is I+1,
-	arg(J, Term, A),
-	write_out(A, Style, 999, punct, _),
-	write_args(J, N, Term, 44, Style).
-
-
-
-%   write_tail(Tail, Style)
-%   writes the tail of a list of a given style.
-
-
-
-
-%% write_tail( :TermARG1, ?ARG2) is det.
-%
-% Write Tail.
-%
-write_tail(Var, _) :-			%  |var]
-	var(Var),
-	!,
-	put(124),
-	write_variable(Var),
-	put(93).
-write_tail([], _) :- !,			%  ]
-	put(93).
-write_tail([Head|Tail], Style) :- !,	%  ,Head tail
-	put(44),
-	write_out(Head, Style, 999, punct, _),
-        
-	write_tail(Tail, Style).
-write_tail(Other, Style) :-		%  |junk]
-	put(124),
-	write_out(Other, Style, 999, punct, _),
-	put(93).
-
-
-/*  The listing/0 and listing/1 commands are based on the Dec-10
-    commands, but the format they generate is based on the "pp" command.
-    The idea of rok_portray_clause/1 came from PDP-11 Prolog.
-
-    BUG: the arguments of goals are not separated by comma-space but by
-    just comma.  This should be fixed, but I haven't the time right not.
-    Run the output through COMMA.EM if you really care.
-
-    An irritating fact is that we can't guess reliably which clauses
-    were grammar rules, so we can't print them out in grammar rule form.
-
-    We need a proper pretty-printer that takes the line width into
-    acount, but it really isn't all that feasible in Dec-10 Prolog.
-    Perhaps we could use some ideas from NIL?
-*/
-
-
-
-
-%% portable_listing is det.
-%
-% Portable Listing.
-%
-portable_listing :-
-	current_predicate(_, Pred),
-        predicate_property(Pred,number_of_clauses(_)),
-	nl,
-	clause(Pred, Body),
-	rok_portray_clause((Pred:-Body)),
-	fail.
-portable_listing.
-
-
-%   listing(PredSpecs)
-
-%   Takes a predicate specifier F/N, a partial specifier F, or a
-%   list of such things, and lists each current_predicate Pred
-%   matching one of these specifications.
-
-
-
-
-%% portable_listing( :TermARG1) is det.
-%
-% Portable Listing.
-%
-portable_listing(V) :-
-	var(V), !.       % ignore variables
-portable_listing([]) :- !.
-portable_listing([X|Rest]) :- !,
-	portable_listing(X),
-	portable_listing(Rest).
-portable_listing(X) :-
-	'functor spec'(X, Name, Low, High),
-	current_predicate(Name, Pred),
-	functor(Pred, _, N),
-	N >= Low, N =< High,
-	nl, 
-	clause(Pred, Body),
-	rok_portray_clause((Pred:-Body)),
-	fail.
-portable_listing(_).
-
-
-
-
-
-%% functor spec( ?ARG1, ?ARG2, :GoalARG3, :PRED255ARG4) is det.
-%
-% Functor Spec.
-%
-'functor spec'(Name/Low-High, Name, Low, High) :- !.
-'functor spec'(Name/Arity, Name, Arity, Arity) :- !.
-'functor spec'(Name, Name, 0, 255).
-
-
-
-
-%% rok_portray_clause( :TermARG1) is det.
-%
-% Rok Portray Clause.
-%
-rok_portray_clause(Var):-var(Var),!,writeq(Var).
-rok_portray_clause(:-(Command)) :-
-	(   Command = public(Body), Key = (public)
-	;   Command = mode(Body),   Key = (mode)
-	;   Command = type(Body),   Key = (type)
-	;   Command = pred(Body),   Key = (pred)
-	;   Command = Body,	    Key = ''
-	),  !,
-	nl,
-	% nu mbervars(Body, 0, _),
-	\+ \+ 'list clauses'(Body, Key, 2, 8).
-rok_portray_clause((Pred:-Body)) :-
-	% nu mbervars(Pred+Body, 0, _),
-	\+ \+ portable_writeq(Pred),
-	\+ \+ 'list clauses'(Body, 0, 2, 8), !.
-rok_portray_clause((Pred)) :-
-	rok_portray_clause((Pred:-true)).
-
-
-
-
-
-%% list clauses( :TermARG1, ?ARG2, ?ARG3, ?ARG4) is det.
-%
-% List Clauses.
-%
-'list clauses'((A,B), L, R, D) :- !,
-	'list clauses'(A, L, 1, D), !,
-	'list clauses'(B, 1, R, D).
-'list clauses'(true, _L, 2, _D) :- !,
-	put(0'.
-        ), nl.
-        
-'list clauses'((A;B), L, R, D) :- !,
-	'list magic'(fail, L, D),
-	'list magic'((A;B), 0, 2, D),
-	'list magic'(R, '.
-'
-).
-
-'list clauses'((A->B), L, R, D) :- !,
-	'list clauses'(A, L, 5, D), !,
-	'list clauses'(B, 5, R, D).
-'list clauses'(Goal, L, R, D) :-
-	'list magic'(Goal, L, D),
-	portable_writeq(Goal),
-	'list magic'(R, '.
-'
-).
-
-
-
-
-%% list magic( ?ARG1, :PRED5ARG2, ?ARG3) is det.
-%
-% List Magic.
-%
-'list magic'(!,    0, _D) :- !,
-	write(' :- ').
-'list magic'(!,    1, _D) :- !,
-	write(',  ').
-'list magic'(_Goal, 0, D) :- !,
-	write(' :- '),
-	nl, tab(D).
-'list magic'(_Goal, 1, D) :- !,
-	put(0',
-        ),
-	nl, tab(D).
-'list magic'(_Goal, 3, _D) :- !,
-	write('(   ').
-'list magic'(_Goal, 4, _D) :- !,
-	write(';   ').
-'list magic'(_Goal, 5, D) :- !,
-	write(' ->'),
-	nl, tab(D).
-'list magic'(_Goal, Key, D) :-
-	atom(Key),
-	write(':- '), write(Key),
-	nl, tab(D).
-
-
-
-
-
-%% list magic( ?ARG1, ?ARG2) is det.
-%
-% List Magic.
-%
-'list magic'(2, C) :- !, write(C).
-'list magic'(_, _).
-
-
-
-
-
-%% list magic( ?ARG1, ?ARG2, ?ARG3, ?ARG4) is det.
-%
-% List Magic.
-%
-'list magic'((A;B), L, R, D) :- !,
-	'list magic'(A, L, 1, D), !,
-	'list magic'(B, 1, R, D).
-'list magic'(Conj,  L, R, D) :-
-	E is D+8,
-	M is L+3,
-	'list clauses'(Conj, M, 1, E),
-	nl, tab(D),
-	'list magic'(R, ')').
-
-
-/*	Test code for rok_portray_clause.
-	If it works, test_portray_clause(File) should write out the
-	contents of File in a more or less readable fashion.
-
-test_portray_clause(File) :-
-	see(File),
-	repeat,
-	    read(Clause, Vars),
-	    (   Clause = end_of_file
-	    ;   test_bind(Vars), rok_portray_clause(Clause), fail
-	    ),
-	!,
-	seen.
-
-test_bind([]) :- !.
-test_bind([X='$VAR'(X)|L]) :-
-	test_bind(L).
-:- public test_portray_clause/1.
-*/
-
-
-
-
-
-
-
-
-:- dynamic user:portray/1.
-:- multifile user:portray/1.
-
-% '$messages':baseKB:my_portray(X):-fail,loop_check(baseKB:my_portray(X)).
-% user:portray(X):-loop_check(baseKB:my_portray(X)).
-/*
-:- discontiguous my_portray/1. 
-:- export(baseKB:my_portray/1).
-baseKB:my_portray(A) :- var(A),!,fail,writeq(A).
-baseKB:my_portray(A) :-
-        atom(A),
-        sub_atom(A, 0, _, _, 'http://'), !,
-        (   style(B)
-        ->  true
-        ;   B=prefix:id
-        ),
-        portray_url(B, A).
-baseKB:my_portray(A) :-
-        atom(A),
-        atom_concat('__file://', B, A),
-        sub_atom(B, D, _, C, #),
-        sub_atom(B, _, C, 0, G),
-        sub_atom(B, 0, D, _, E),
-        file_base_name(E, F),
-        format('__~w#~w', [F, G]).
-baseKB:my_portray(A) :- atom(A),!,baseKB:write_atom_link(A,A).
-baseKB:my_portray(A) :- \+compound(A),fail.
-%baseKB:my_portray(P):- must_run((return_to_pos(rok_portray_clause(P)),!)).
-*/
-
-
-
-
-
-
-
-%% sanity_test_000 is det.
-%
-% Optional Sanity Checking test  Primary Helper Primary Helper Primary Helper.
-%
-sanity_test_000:- find_and_call((rok_portray_clause((
-pkif :-
-
-        [ implies,
-
-          [ isa(F, tPred),
-            isa(A, ftInt),
-            poss(KB, pos([arity(F, A)])),
-            poss(KB, arity(F, A))
-          ],
-          =>,
-
-          [ all([F]),
-
-            [ implies,
-              [isa(F, tPred), ex([A]), isa(A, ftInt), poss(KB, arity(F, A))],
-              =>,
-              [ex([A]), [isa(A, ftInt), arity(F, A)]]
-            ]
-          ]
-        ])))),nl,nl,nl.
-
-
-
-xlisting_web_file.
-% :- ensure_sigma(6767).
-
-x123:- locally_tl(print_mode(html),xlisting_inner(i2tml_hbr,end_of_file,[])).
-
 % WANT 
 :- during_net_boot(register_logicmoo_browser).
 
 :- register_logicmoo_browser.
 
 :- retractall(t_l:no_cycstrings).
-%:- fixup_exports.
+
+:- mpred_notrace_exec.
+
+%:- nb_setval(defaultAssertMt,[]).
+
+
+xlisting_web_file.
+% :- ensure_sigma(6767).
+
+:- fixup_exports.
+
 
