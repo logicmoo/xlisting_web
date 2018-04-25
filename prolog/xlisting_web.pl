@@ -662,6 +662,7 @@ body {
      bformat('<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>',[]),
      html_head:output_html(html_requires(plain)),     
      bformat('<title>~w for ~w</title>
+      <meta http-equiv="X-Frame-Options" content="ALLOWAll">
       <link rel="stylesheet" type="text/css" href="/css/cliopatria.css">
       <link rel="stylesheet" type="text/css" href="/css/menu.css">
       <script type="text/javascript" src="/js/jquery-2.1.3.min.js"></script>
@@ -1826,6 +1827,9 @@ do_guitracer:- ensure_guitracer_x, guitracer,dtrace.
 
 output_telnet_console(Port):- HttpPort is Port +100,
   sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="600" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
+  write_html(HTML).
+output_telnet_console2(Port):- HttpPort is Port +100,
+  sformat(HTML,'<iframe id="port~w" src="http://logicmoo.org:~w/" height="80%" width="100%">loading...</iframe>',[HttpPort,HttpPort]),
   write_html(HTML).
 
 
@@ -3040,7 +3044,7 @@ baseKB:shared_hide_data((Pred)) :- fail, rok_portray_clause((Pred:-true)).
 
 :- fixup_exports.
 
-:- mpred_trace_exec.
+%:- mpred_trace_exec.
 
 /*use_baseKB(M,I) :-
   M:import(pfccore:pfcDefault/2),
@@ -3058,11 +3062,9 @@ baseKB:shared_hide_data((Pred)) :- fail, rok_portray_clause((Pred:-true)).
 % WANT 
 :- during_net_boot(register_logicmoo_browser).
 
-:- register_logicmoo_browser.
-
 :- retractall(t_l:no_cycstrings).
 
-:- mpred_notrace_exec.
+%:- mpred_notrace_exec.
 
 %:- nb_setval(defaultAssertMt,[]).
 
@@ -3071,5 +3073,10 @@ xlisting_web_file.
 % :- ensure_sigma(6767).
 
 :- fixup_exports.
+
+%:- noguitracer.
+
+:- register_logicmoo_browser.
+
 
 
