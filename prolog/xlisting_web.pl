@@ -495,7 +495,7 @@ reset_assertion_display:-
    flag(matched_assertions,_,0),
    flag(show_asserions_offered,_,0),
    retractall(shown_subtype(_)),
-   retractall(shown_clause(_)).
+   retractall(xlw:shown_clause(_)).
 
 
 
@@ -2134,7 +2134,7 @@ pp_i2tml_save_seen(HB):- assertz_if_new(sortme_buffer(_Obj,HB)),!.
 :- thread_local(t_l:tl_hide_data/1).
    
 :- thread_local(shown_subtype/1).
-:- thread_local(shown_clause/1).
+:- thread_local(xlw:shown_clause/1).
 :- meta_predicate if_html(*,0).
 
 
@@ -2302,11 +2302,14 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_
 %
 pp_item_html(_Type,H):-var(H),!.
 pp_item_html(Type,done):-!,section_close(Type),!.
-pp_item_html(_,H):-shown_clause(H),!.
-pp_item_html(_,P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden(F/A);is_listing_hidden(F)))),!.
-
+pp_item_html(_,H):- xlw:shown_clause(H),!.
+pp_item_html(_,P):- is_hidden_pred(P),!.
 pp_item_html(Type,H):- \+ is_html_mode, pp_item_html_now(Type,H),!.
 pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp_item_html_now(Type,H))).
+
+is_hidden_pred(M:P):-!, (is_listing_hidden(M); is_hidden_pred(P)).
+is_hidden_pred(P):- (is_listing_hidden(P); (compound(P),functor(P,F,A),(is_listing_hidden((F/A));is_listing_hidden((F))))),!.
+
 
 
 
@@ -2318,7 +2321,7 @@ pp_item_html(Type,H):- ignore((flag(matched_assertions,X,X),between(0,5000,X),pp
 pp_item_html_now(Type,H):-    
    flag(matched_assertions,X,X+1),!,
    pp_item_html_if_in_range(Type,H),!,
-   assert(shown_clause(H)),!.
+   assert(xlw:shown_clause(H)),!.
 
 
 
@@ -2352,9 +2355,10 @@ show_clause_ref(Ref):- retractall(t_l:last_show_clause_ref(_)),asserta(t_l:last_
 %
 % Show Clause Ref Now.
 %
+show_clause_ref_now(_Ref):- is_listing_hidden(hideClauseRef),!.
 show_clause_ref_now(V):-var(V),!.
 show_clause_ref_now(0):-!.
-show_clause_ref_now(_Ref):- is_listing_hidden(hideClauseRef),!.
+show_clause_ref_now(none):-!.
 show_clause_ref_now(Ref):- is_listing_hidden(showFilenames), \+ clause_property(Ref,predicate(_)),format('~N~p~N',[clref(Ref)]),!.
 % write_html(div(class(src_formats),a(href(EditLink), edit)])).
 show_clause_ref_now(Ref):- is_listing_hidden(showFilenames),clause_property(Ref,file(File)),ignore(clause_property(Ref,line_count(Line))),
