@@ -36,7 +36,7 @@ swish_highlight:memory_file_to_string(X,Y):- memory_file_to_codes(X,C),string_co
 :- use_module(library(pldoc)).
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_parameters)).
-:- use_module(library(http/html_write)).
+:- use_module(swi(library/http/html_write)).
 :- use_module(library(http/mimetype)).
 :- use_module(library(dcg/basics)).
 :- use_module(library(http/http_dispatch)).

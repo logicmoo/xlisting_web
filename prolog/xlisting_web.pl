@@ -75,7 +75,7 @@
             nl_same_pos/0,
             numberlist_at/2,
             object_sub_page/4,
-            param_default_value/2,
+            %param_default_value/2,
             param_matches/2,
             parameter_names/2,
             %partOfSpeech/2,
@@ -167,11 +167,27 @@
 :- use_module(library(each_call_cleanup)).
 :- use_module(library(no_repeats)).
 
+
+:- dynamic user:library_directory/1.
+:- multifile user:library_directory/1.
+hide_xpce_library_directory:- 
+  user:library_directory(X),
+  atom(X),
+  atom_concat(_,'xpce/prolog/lib/',X),!,
+  retract((user:library_directory(X))),
+  assert((user:library_directory(X):- \+ current_prolog_flag(hide_xpce_library_directory,true))).
+hide_xpce_library_directory.
+
+:- hide_xpce_library_directory.
+:- set_prolog_flag(hide_xpce_library_directory,true).
+
 %:- ensure_loaded(library(logicmoo_swilib)).
 :- use_module(library(http/thread_httpd)).
 :- use_module(thread_httpd:library(http/http_dispatch)).
-:- use_module(library(http/html_head)).
-:- use_module(library(http/html_write)).
+:- if(\+ current_module(html_write)).
+:- use_module(swi(library/http/html_write)).
+:- endif.
+:- use_module(swi(library/http/html_head)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_log)).
@@ -224,11 +240,16 @@
 %:- endif.
 
 :- thread_local(t_l:print_mode/1).
+
+:- if(exists_source(cliopatria('applications/help/load'))).
 :- use_module(cliopatria('applications/help/load')).
 % Load ClioPatria itself.  Better keep this line.
 :- use_module(cliopatria(cliopatria)).
-
-:- kb_global(param_default_value/2).
+:- else.
+cp_menu:cp_menu(X,X).
+cp_menu:cp_menu.
+:- endif.
+:- kb_global(baseKB:param_default_value/2).
 
 :- meta_predicate 
         edit1term(*),
@@ -1808,8 +1829,8 @@ show_edit_term0(Call,String,SWord):-atomic(SWord),cvt_param_to_term(SWord,T),non
 show_edit_term0(Call,String,SWord):-show_edit_term1(Call,String,SWord).
 
 
-
-ensure_guitracer_x:-
+ensure_guitracer_x:-!.
+ensure_guitracer_x:- break,
  absolute_file_name(swi(xpce/prolog/lib),X), assert_if_new(user:library_directory(X)), 
  user:use_module(library(pce_prolog_xref)),
  user:use_module(library(emacs_extend)),
@@ -3082,5 +3103,5 @@ xlisting_web_file.
 
 :- register_logicmoo_browser.
 
-
+:- set_prolog_flag(hide_xpce_library_directory,false).
 

@@ -12,7 +12,7 @@
 :- module(swish_render_html,
 	  [ term_rendering//3			% +Term, +Vars, +Options
 	  ]).
-:- use_module(library(http/html_write)).
+:- use_module(swi(library/http/html_write)).
 :- use_module(swish(lib/render)).
 
 :- register_renderer(html, "Render html representations").

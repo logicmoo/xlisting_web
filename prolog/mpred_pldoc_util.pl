@@ -140,7 +140,7 @@ write_count(H,N):- writeq(H:N),write(', ').
 :- use_module(library('pldoc/doc_pack')).
 :- use_module(library('pldoc/doc_register')).
 :- use_module(library('pldoc/doc_library')).
-:- use_module(library(http/html_write)).
+:- use_module(swi(library/http/html_write)).
 :- use_module(library(http/http_path)).
 :- use_module(library(prolog_xref)).
 :- use_module(library(http/http_dispatch)).
@@ -229,7 +229,7 @@ transform_term0(Term,Term):-!.
 :- use_module(library('pldoc/doc_html')).
 :- use_module(library('pldoc/doc_wiki')).
 :- use_module(library('pldoc/doc_modes')).
-:- use_module(library(http/html_write)).
+:- use_module(swi(library/http/html_write)).
 :- use_module(library(http/http_path)).
 :- use_module(library(prolog_xref)).
 
