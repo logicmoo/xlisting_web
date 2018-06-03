@@ -184,9 +184,7 @@ hide_xpce_library_directory.
 %:- ensure_loaded(library(logicmoo_swilib)).
 :- use_module(library(http/thread_httpd)).
 :- use_module(thread_httpd:library(http/http_dispatch)).
-:- if(\+ current_module(html_write)).
 :- use_module(swi(library/http/html_write)).
-:- endif.
 :- use_module(swi(library/http/html_head)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_path)).
@@ -3041,16 +3039,14 @@ indent_nbsp(X,Chars):-XX is X -1,!, indent_nbsp(XX,OutP),!,sformat(Chars,'~w   '
 
 :- xlisting_web:import(xlisting:is_listing_hidden/1).
 
-:- multifile baseKB:shared_hide_data/1.
-:- kb_shared(baseKB:shared_hide_data/1).
-baseKB:shared_hide_data(M:F/A):-nonvar(M),!,baseKB:shared_hide_data(F/A).
-baseKB:shared_hide_data('$si$':'$was_imported_kb_content$'/2):- !,is_listing_hidden(hideMeta).
-baseKB:shared_hide_data(spft/3):- !,is_listing_hidden(hideTriggers).
-baseKB:shared_hide_data(spft/3):- !,is_listing_hidden(hideTriggers).
-baseKB:shared_hide_data(nt/3):- !,is_listing_hidden(hideTriggers).
-baseKB:shared_hide_data(pt/2):- !, is_listing_hidden(hideTriggers).
-baseKB:shared_hide_data(bt/2):- !, is_listing_hidden(hideTriggers).
-baseKB:shared_hide_data((_:-
+shared_hide_data_sp(Var):- is_ftVar(Var),!,fail.
+shared_hide_data_sp(_:F/A):- !,shared_hide_data_sp(F/A).
+shared_hide_data_sp('$si$':'$was_imported_kb_content$'/2):- !,is_listing_hidden(hideMeta).
+shared_hide_data_sp(spft/3):- !,is_listing_hidden(hideTriggers).
+shared_hide_data_sp(nt/3):- !,is_listing_hidden(hideTriggers).
+shared_hide_data_sp(pt/2):- !, is_listing_hidden(hideTriggers).
+shared_hide_data_sp(bt/2):- !, is_listing_hidden(hideTriggers).
+shared_hide_data_sp((_:-
  cwc,
         second_order(_,G19865),
         (   _G19865 = (G19867,!,G19871) ->
@@ -3060,12 +3056,17 @@ baseKB:shared_hide_data((_:-
         ))):- CALL=@=call(G19865).
 
 
-baseKB:shared_hide_data(saved_request/_):- !.
-baseKB:shared_hide_data(session_data/_):- !.
-baseKB:shared_hide_data(mpred_prop/3):- !,is_listing_hidden(hideMeta).
-baseKB:shared_hide_data(last_item_offered/1):- !,is_listing_hidden(hideMeta).
-baseKB:shared_hide_data(P0):- strip_module(P0,_,P), compound(P),functor(P,F,A),F\== (/) , !,baseKB:shared_hide_data(F/A).
-baseKB:shared_hide_data((Pred)) :- fail, rok_portray_clause((Pred:-true)).
+shared_hide_data_sp(saved_request/_):- !.
+shared_hide_data_sp(session_data/_):- !.
+shared_hide_data_sp(mpred_prop/3):- !,is_listing_hidden(hideMeta).
+shared_hide_data_sp(last_item_offered/1):- !,is_listing_hidden(hideMeta).
+shared_hide_data_sp(P0):- strip_module(P0,_,P), compound(P),functor(P,F,A),F\== (/) , !,shared_hide_data_sp(F/A).
+shared_hide_data_sp((Pred)) :-  fail, rok_portray_clause((Pred:-true)).
+
+
+:- multifile baseKB:shared_hide_data/1.
+:- kb_global(baseKB:shared_hide_data/1).
+baseKB:shared_hide_data(MFA):- cwc,nonvar(MFA), shared_hide_data_sp(MFA).
 
 :- fixup_exports.
 
