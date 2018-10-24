@@ -11,7 +11,7 @@
 %:- if(( ( \+ ((current_prolog_flag(logicmoo_include,Call),Call))) )). 
 :- module(xlisting_web,
           [ action_menu_applied/3,
-            action_menu_item/2,
+            %action_menu_item/2,
             add_form_script/0,
             register_logicmoo_browser/0,
             as_ftVars/1,
@@ -247,7 +247,9 @@ hide_xpce_library_directory.
 cp_menu:cp_menu(X,X).
 cp_menu:cp_menu.
 :- endif.
+
 :- kb_global(baseKB:param_default_value/2).
+:- kb_global(baseKB:mtExact/1).
 
 :- meta_predicate 
         edit1term(*),
@@ -343,10 +345,6 @@ register_logicmoo_browser:-
   http_handler('/swish/logicmoo_nc/', handler_logicmoo_cyclone, [prefix,chunked]),
   doc_collect(true).
 
-:- baseKB:multifile(baseKB:mtExact/1).
-:- baseKB:dynamic(baseKB:mtExact/1).
-:- baseKB:export(baseKB:mtExact/1).
-:- xlisting_web:import(baseKB:mtExact/1).
 
 %% location( ?ARG1, ?ARG2, ?ARG3) is det.
 %
@@ -370,8 +368,14 @@ register_logicmoo_browser:-
 :- meta_predicate
 	handler_logicmoo_cyclone(+).
 
+:- must(prolog_load_context(module,xlisting_web)).
+in_xlisting_web1.
+:- must( \+ pfc_lib:is_pfc_file0).
+:- ensure_loaded('xlisting_web.pfc').
+:- must( \+ is_pfc_file).
 
-
+in_xlisting_web2.
+:- xlisting_web:listing(in_xlisting_web2).
 
 %% print_request( :TermARG1) is det.
 %
@@ -384,6 +388,7 @@ print_request([H|T]) :-
         print_request(T).
 
 
+:- xlisting_web:listing(print_request/1).
 
 
 
@@ -1967,7 +1972,7 @@ show_edit_term1(Call,String,SWord):-
     show_select2('context',is_context,[]),
     show_select2(flang,logic_lang_name,[]),
     SWord,
-    show_select2('POS',partOfSpeech,[]),
+    %show_select2('POS',partOfSpeech,[]),
     show_select1('humanLang',human_language),
     URL,
     show_select2(olang,logic_lang_name,[])]),!,   
@@ -2176,7 +2181,7 @@ section_open(Type):-  once(shown_subtype(Type)->true;((is_html_mode->bformat('~n
 section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_html_mode->bformat('</font>\n</pre><hr/><pre>',[]);draw_line));true.
 
 :- export((action_menu_applied/3,
-            action_menu_item/2,
+            %xaction_menu_item/2,
             add_form_script/0,
             register_logicmoo_browser/0,
             as_ftVars/1,
@@ -2240,7 +2245,7 @@ section_close(Type):- shown_subtype(Type)->(retractall(shown_subtype(Type)),(is_
             % param_default_value/2,
             param_matches/2,
             parameter_names/2,
-            partOfSpeech/2,
+            %partOfSpeech/2,
             portable_display/1,
             portable_listing/0,
             portable_listing/1,
@@ -2480,7 +2485,6 @@ if_html(_,A):-A.
 
 
 
-
 %% pp_i2tml_1( ?ARG1) is det.
 %
 % Pretty Print i2tml  Secondary Helper.
@@ -2488,7 +2492,7 @@ if_html(_,A):-A.
 pp_i2tml_1(H):- 
  once(((lmcache:last_item_offered(Was);Was=foobar),get_functor(Was,F1,_A1),get_functor(H,F2,_A2),
    retractall(lmcache:last_item_offered(Was)),asserta(lmcache:last_item_offered(H)),
-    ((F1 \== F2 -> if_html('~N<hr/>',true);true)))),flush_output_safe,fail.
+    ((F1 \== F2 -> if_html('~N~@<hr/>',true);true)))),flush_output_safe,fail.
 
 pp_i2tml_1(_H):- t_l:current_clause_ref(Ref),
     if_html('<font size="1">~@</font>',show_clause_ref(Ref)),fail.
@@ -2596,7 +2600,7 @@ session_checkbox(Name,Caption,BR):-
 % Action Menu Applied.
 %
 action_menu_applied(MenuName,ItemName,Where):-
-  block_format(( bformat('<label>',[]),show_select2(MenuName,action_menu_item,[atom_subst('$item',ItemName)]),
+  block_format(( bformat('<label>',[]),show_select2(MenuName,xaction_menu_item,[atom_subst('$item',ItemName)]),
       bformat('&nbsp;~w&nbsp;&nbsp;<input type="submit" value="Now" name="Apply">',[Where]),
       bformat('</label>',[]))).
 
@@ -3068,8 +3072,6 @@ shared_hide_data_sp((Pred)) :-  fail, rok_portray_clause((Pred:-true)).
 :- kb_global(baseKB:shared_hide_data/1).
 baseKB:shared_hide_data(MFA):- cwc,nonvar(MFA), shared_hide_data_sp(MFA).
 
-:- fixup_exports.
-
 %:- mpred_trace_exec.
 
 /*use_baseKB(M,I) :-
@@ -3083,26 +3085,27 @@ baseKB:shared_hide_data(MFA):- cwc,nonvar(MFA), shared_hide_data_sp(MFA).
 
 %:- nb_setval(defaultAssertMt,xlisting_web).
 
-:- ensure_loaded('xlisting_web.pfc').
-          
-% WANT 
-:- during_net_boot(register_logicmoo_browser).
 
-:- retractall(t_l:no_cycstrings).
+
+xlisting_web_file.
+
+          
 
 %:- mpred_notrace_exec.
 
 %:- nb_setval(defaultAssertMt,[]).
 
-
-xlisting_web_file.
 % :- ensure_sigma(6767).
 
 :- fixup_exports.
 
 %:- noguitracer.
-
-:- register_logicmoo_browser.
+% WANT 
 
 :- set_prolog_flag(hide_xpce_library_directory,false).
+:- retractall(t_l:no_cycstrings).
+
+:- during_net_boot(register_logicmoo_browser).
+
+
 

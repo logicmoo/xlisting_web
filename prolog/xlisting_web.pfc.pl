@@ -2,10 +2,10 @@
 
 
 :- use_module(library(pfc_lib)).
+:- file_begin(pfc).
 %:- set_defaultAssertMt(xlisting_web).
 :- set_fileAssertMt(xlisting_web).
 %:- use_module(library(pfc)).
-:- file_begin(pfc).
 
 /*
 :- baseKB:export(baseKB:never_assert_u/2).
@@ -18,13 +18,18 @@
 %
 % Param Default Value.
 %
-:- kb_shared(combo_default_value/3).
-:- mpred_trace_exec.
-:-ain((==> combo_default_value(human_language,1,'EnglishLanguage'))).
-:-ain((combo_default_value(N,_,V) ==> param_default_value(N,V))).
-:-ain((combo_default_value(Pred,Arity,_Value)==> {kb_shared(Pred/Arity)})).
 
+:- mpred_trace_exec.
+:- kb_global(baseKB:param_default_value/2).
 ==> singleValueInArg(param_default_value,2).
+
+:- kb_global(xlisting_web:combo_default_value/3).
+==> singleValueInArg(combo_default_value,3).
+
+combo_default_value(human_language,1,'EnglishLanguage').
+combo_default_value(N,_,V) ==> param_default_value(N,V).
+combo_default_value(Pred,Arity,_Value)==> {kb_shared(Pred/Arity)}.
+%:- brea.
 
 
 %% human_language( ?ARG1) is det.
@@ -73,7 +78,7 @@ param_default_value(find,'tHumanHead').
      'context'='BaseKB',
      'flang'='CLIF','find'='tHumanHead','xref'='Overlap','POS'='N',
      'humanLang'='EnglishLanguage','olang'='CLIF','sExprs'='1',
-     'webDebug'='1','displayStart'='0','displayMax'='100000']),ain(param_default_value(N,V))).
+     'webDebug'='1','displayStart'='0','displayMax'='100000']),xlisting_web:ain(param_default_value(N,V))).
 
 
 combo_default_value(logic_lang_name,2,'CLIF').
@@ -103,23 +108,28 @@ prover_name(proverDOLCE,"DOLCE (LogicMOO)").
 
 
 
-
+/*
 combo_default_value(partOfSpeech,2,'N').
 %% partOfSpeech( ?ARG1, ?ARG2) is det.
 %
 % Part Of Speech.
 %
+:- kb_shared(partOfSpeech/2).
 partOfSpeech("N","Noun").
 partOfSpeech("V","Verb").
 partOfSpeech("J","Adjective").
 partOfSpeech("Z","Adverb").
-
-
+*/
 
 %% search_filter_name_comment( ?ARG1, ?ARG2, ?ARG3) is det.
 %
 % Search Filter Name Comment.
 %
+
+:- xlisting_web:kb_global(search_filter_name_comment/3).
+
+%:- xlisting_web:dynamic(xlisting_web:search_filter_name_comment/3).
+%:- baseKB:import(xlisting_web:search_filter_name_comment/3).
 search_filter_name_comment(hideMeta,'Hide Meta/BookKeeping','1').
 search_filter_name_comment(hideSystem,'Skip System','0').
 search_filter_name_comment(hideTriggers,'Hide Triggers','1').
@@ -133,37 +143,38 @@ search_filter_name_comment(hideClauseInfo,'Skip ClauseInfo','0').
 search_filter_name_comment(hideXRef,'Skip XREF','1').
 search_filter_name_comment(showAll,'Show All','0').
   
-:- baseKB:import(xlisting_web:action_menu_item/2).
 
-:- baseKB:import(xlisting_web:search_filter_name_comment/3).
+%:- add_import_module(baseKB, xlisting_web,end).
 
-:- add_import_module(baseKB, xlisting_web,end).
 
-:-ain((search_filter_name_comment(N,_,D)==>param_default_value(N,D))).
-
+search_filter_name_comment(N,_,D)==>param_default_value(N,D).
 
 combo_default_value(is_context,2,'BaseKB').
 
-combo_default_value(action_menu_item,2,'query').
+:- kb_global(xlisting_web:xaction_menu_item/2).
 
-%arg2Isa(action_menu_item,xtPrologString).
+combo_default_value(xaction_menu_item,2,'query').
 
-%% action_menu_item( ?ARG1, ?ARG2) is det.
+%arg2Isa(xaction_menu_item,xtPrologString).
+
+%% xaction_menu_item( ?ARG1, ?ARG2) is det.
 %
 % Action Menu Item.
 %
-action_menu_item('Find',"Find $item").
-action_menu_item('Forward',"Forward Direction").
-action_menu_item('Backward',"Backward Direction").
-action_menu_item('query',"Query $item").
-action_menu_item('repropagate',"Repropagate $item (ReAssert)").
-action_menu_item('remove',"Remove $item(Unassert)").   
-action_menu_item('Code',"Assume Theorem (Disable $item)").
-action_menu_item('prologSingleValued',"Make $item Single Valued").
-action_menu_item('prologBuiltin',"Impl $item in Prolog").
-action_menu_item('prologPTTP',"Impl $item in PTTP").
-action_menu_item('prologDRA',"Impl $item in DRA").
-action_menu_item('prologPfc',"Impl $item in PFC").
-action_menu_item('Monotonic',"Treat $item Monotonic").
-action_menu_item('NonMonotonic',"Treat $item NonMonotonic").   
+
+xaction_menu_item('Find',"Find $item").
+xaction_menu_item('Forward',"Forward Direction").
+xaction_menu_item('Backward',"Backward Direction").
+xaction_menu_item('query',"Query $item").
+xaction_menu_item('repropagate',"Repropagate $item (ReAssert)").
+xaction_menu_item('remove',"Remove $item(Unassert)").   
+xaction_menu_item('Code',"Assume Theorem (Disable $item)").
+xaction_menu_item('prologSingleValued',"Make $item Single Valued").
+xaction_menu_item('prologBuiltin',"Impl $item in Prolog").
+xaction_menu_item('prologPTTP',"Impl $item in PTTP").
+xaction_menu_item('prologDRA',"Impl $item in DRA").
+xaction_menu_item('prologPfc',"Impl $item in PFC").
+xaction_menu_item('Monotonic',"Treat $item Monotonic").
+xaction_menu_item('NonMonotonic',"Treat $item NonMonotonic").   
+
 
